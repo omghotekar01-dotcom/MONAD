@@ -55,6 +55,7 @@ export function beatCardHTML({pattern, title, room=null, playing=false, muted=[]
         <button type="button" class="beat-secondary" data-card-art>↓ Save artwork</button>
         ${finalized?'<button type="button" class="beat-secondary" data-card-share>↗ Share beat</button>':""}
       </div>
+      <div class="beat-replay-progress" aria-label="One-bar replay progress"><span data-card-progress></span></div>
       <p class="beat-help">Solo or mute individual instruments to hear what each player contributed. These listening settings never alter the recorded chain pattern.</p>
       <div class="beat-stems">${actions}</div>
       ${creditPanel}
