@@ -9,3 +9,6 @@
 - UI audio is low-latency local; authoritative multiplayer state and contributor payouts must come from contract.
 - Distinguish local practice from on-chain rooms. Do not claim blockchain transactions, contract security, validation, or deployment that has not occurred.
 - Keep `PROJECT_STATUS.md` honest after each milestone, including tests actually executed and blockers.
+
+- Contract protocol: `docs/CONTRACTS.md`. Use `npm run contracts:compile` and `npm run contracts:test`; deploy ONLY to Monad Testnet with a separate local test-wallet signer.
+- Root `type=module` requires explicit `--config hardhat.config.cjs` in npm contract scripts; do not rename config to `.js` without adapting to ESM.
