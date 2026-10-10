@@ -1,4 +1,5 @@
 import "./rooms.css";
+import { beatCardHTML } from "./beat-card-view.js";
 import QRCode from "qrcode";
 import { INSTRUMENTS, LABELS, createPattern } from "./sequencer.js";
 import {
@@ -24,7 +25,7 @@ const numberId = value => {
   return BigInt(v);
 };
 const EMPTY_STATUS="Local practice is ready without a wallet.";
-export function mountRooms({onPattern,onStatus,onRoomChange}) {
+export function mountRooms({onPattern,onStatus,onRoomChange,getMix=()=>({})}) {
   const root=document.getElementById("rooms-anchor");
   let roomId=roomIdFromSearch(location.search);
   let room=null, wallet=null, claimable=0n;
@@ -46,7 +47,7 @@ export function mountRooms({onPattern,onStatus,onRoomChange}) {
   };
   const latestHash=(hash)=>txMessage("Awaiting confirmation","pending",hash);
   function frameSignature() {
-    return JSON.stringify([roomId?.toString(),room?.phase,room?.seats,wallet?.toLowerCase(),preferSession,sessionAddress(),sessionActive(roomId),room?.eligibleMask,CONTRACT_READY]);
+    return JSON.stringify([roomId?.toString(),room?.phase,room?.seats,wallet?.toLowerCase(),preferSession,sessionAddress(),sessionActive(roomId),room?.eligibleMask,room?.totalTipped?.toString(),room?.totalClaimed?.toString(),claimable?.toString(),CONTRACT_READY]);
   }
   function route(id,kind="room") {
     const next=id==null?location.pathname:(kind==="beat"?beatHref(id):roomHref(id));
@@ -184,6 +185,7 @@ export function mountRooms({onPattern,onStatus,onRoomChange}) {
           ` : ""}
           `:""}
         ${room.phase==="Finalized"?`
+          <div class="room-beat-art">${beatCardHTML({pattern:room.pattern,title:room.name,room,...getMix()})}</div>
           <div class="final-panel">
             <div><span class="eyebrow">THE FINISHED BEAT</span><h3>${room.eligibleMask?"Your music is on-chain.":"No recorded contributions"}</h3>
               <p>Eligible seats: ${chosenMask}. Every eligible seat receives an equal share of tips sent to this contract. Multiple seats held by one wallet aggregate.</p>
