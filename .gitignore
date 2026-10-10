@@ -8,3 +8,6 @@ coverage/
 *.log
 .hardhat/
 .env.local
+
+# Local verified PUBLIC deployment receipts (do not commit user-specific artifacts)
+.deployments/
