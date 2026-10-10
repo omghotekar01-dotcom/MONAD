@@ -21,7 +21,7 @@ export function Sequencer({editable=false,allowed=()=>true}:{editable?:boolean;a
   </div>;
 }
 export function InstrumentSelector({allowed=()=>true}:{allowed?:(i:Instrument)=>boolean}) {
-  const m=useMusic();return <div className="grid grid-cols-4 gap-2 sm:gap-3">{instruments.map((i,n)=>{const Icon=instrumentIcons[i];return <Button variant="outline" key={i} aria-pressed={m.instrument===i} onClick={()=>m.setInstrument(i)} className={`instrument-${i} h-auto min-h-20 flex-col items-start px-3 sm:px-4 py-3 ${m.instrument===i?'instrument-selected':''}`}><div className="flex w-full items-center justify-between"><Icon className="instrument-color"/><span className="text-[10px] text-muted-foreground">0{n+1}</span></div><span className="capitalize text-xs sm:text-sm mt-2">{i}</span><span className="text-[9px] text-muted-foreground font-normal">{allowed(i)?'Your instrument':'Listen only'}</span></Button>;})}</div>;
+  const m=useMusic();return <div className="grid grid-cols-4 gap-2 sm:gap-3">{instruments.map((i,n)=>{const Icon=instrumentIcons[i];return <Button variant="outline" key={i} aria-pressed={m.instrument===i} onClick={()=>m.setInstrument(i)} className={`instrument-${i} h-auto min-h-20 flex-col items-start px-3 sm:px-4 py-3 ${m.instrument===i?'instrument-selected':''}`}><div className="flex w-full items-center justify-between"><Icon className="instrument-color"/><span className="text-[10px] text-muted-foreground">0{n+1}</span></div><span className="capitalize text-xs sm:text-sm mt-2">{i}</span><span className="text-[10px] text-muted-foreground font-normal">{!allowed(i)?'Listen only':m.instrument===i?'✓ Selected — play below':'Click to select'}</span></Button>;})}</div>;
 }
 export function PerformanceKeyboard({allowed=()=>true}:{allowed?:(i:Instrument)=>boolean}) {
   const m=useMusic();const [held,setHeld]=useState<Set<number>>(new Set());const current=useRef(m);const permitted=useRef(allowed);current.current=m;permitted.current=allowed;
@@ -33,7 +33,54 @@ export function PerformanceKeyboard({allowed=()=>true}:{allowed?:(i:Instrument)=
   return <div className={`instrument-${m.instrument}`}><div className={`grid gap-2 ${count===4?'grid-cols-4':'grid-cols-8'}`}>{Array.from({length:count},(_,n)=><Button variant="ghost" key={n} className={`performance-key ${held.has(n)?'down':''}`} disabled={!allowed(m.instrument)} aria-label={`Play ${m.instrument==='drums'?drumNames[n]:pitches[n]}`} onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);press(n);}} onPointerUp={()=>release(n)} onPointerCancel={()=>release(n)} onClick={e=>{if(e.detail===0){press(n);setTimeout(()=>release(n),130);}}}><span className="text-[10px] sm:text-xs">{m.instrument==='drums'?drumNames[n]:pitches[n]}</span><kbd className="text-[10px] text-muted-foreground uppercase">{keys[n]}</kbd></Button>)}</div></div>;
 }
 export function Transport({save=true}:{save?:boolean}) {
-  const m=useMusic();const input=useRef<HTMLInputElement>(null);
-  const exportLoop=()=>{const blob=new Blob([JSON.stringify({name:m.title,bpm:120,steps:16,pattern:m.pattern},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='beat-drop-loop.json';link.click();URL.revokeObjectURL(url);toast.success('Loop exported.');};
-  return <div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-2"><Button size="icon" title={m.playing?'Pause':'Play'} aria-label={m.playing?'Pause beat':'Play beat'} onClick={()=>void m.toggle()}>{m.playing?<Pause/>:<Play/>}</Button><Button size="icon" variant="ghost" title="Stop" aria-label="Stop beat" onClick={m.stop}><RotateCcw/></Button><Button size="icon" variant={m.armed?'destructive':'ghost'} title="Arm recording" aria-label="Arm recording" aria-pressed={m.armed} onClick={()=>m.setArmed(!m.armed)}><Circle/></Button><Button size="icon" variant="ghost" title="Undo" aria-label="Undo edit" onClick={m.undo}><Undo2/></Button><span className="ml-2 text-[11px] text-muted-foreground tabular-nums">120 BPM <span className="mx-2">/</span> 4/4</span></div><div className="flex items-center gap-2"><Button variant="ghost" size="icon" aria-label="Toggle master mute" onClick={()=>m.setVolume(m.volume>0?0:.65)}>{m.volume?<Volume2/>:<VolumeX/>}</Button><input aria-label="Master volume" type="range" min="0" max="1" step=".01" value={m.volume} onChange={e=>m.setVolume(Number(e.target.value))} className="w-20 accent-mint-foreground"/>{save&&<><Button size="icon" variant="ghost" aria-label="Export loop" title="Export loop" onClick={exportLoop}><Download/></Button><Button size="icon" variant="ghost" aria-label="Import loop" title="Import loop" onClick={()=>input.current?.click()}><Upload/></Button><input ref={input} type="file" accept="application/json" className="hidden" onChange={async e=>{const file=e.target.files?.[0];if(!file)return;try{const value=JSON.parse(await file.text());if(!validPattern(value.pattern))throw new Error();m.load(value.pattern,value.name??'Imported loop');toast.success('Loop imported.');}catch{toast.error('Choose a valid 16-step BEAT DROP loop.');}e.target.value='';}}/></>}</div></div>;
+ const m=useMusic();const input=useRef<HTMLInputElement>(null);
+ const exportLoop=()=>{
+   const blob=new Blob([JSON.stringify({name:m.title,bpm:120,steps:16,pattern:m.pattern},null,2)],{type:'application/json'});
+   const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;
+   link.download='beat-drop-loop.json';link.click();URL.revokeObjectURL(url);
+   toast.success('Loop exported to Downloads.');
+ };
+ const recordStatus=m.armed
+   ?(m.playing?'Recording is armed. Play the pads to add notes at the current step.':'Ready to record. Press Play loop, then tap the instrument keys.')
+   :(m.playing?'Playing your 16-step loop. Tap keys to improvise; Arm record to save your notes.':
+     'Ready. Press Play loop to hear all four tracks together.');
+ return <div className="studio-transport" aria-label="Music playback and recording controls">
+   <div className="studio-transport-main">
+     <div className="studio-transport-buttons">
+       <Button title={m.playing?'Pause the loop':'Play all four instruments'} aria-label={m.playing?'Pause beat':'Play beat'}
+         className="studio-transport-play" onClick={()=>void m.toggle()}>
+         {m.playing?<Pause className="size-4"/>:<Play className="size-4"/>}{m.playing?'Pause loop':'Play loop'}
+       </Button>
+       <Button variant="outline" title="Stop playback" aria-label="Stop beat"
+         onClick={m.stop}><RotateCcw className="size-4"/>Stop</Button>
+       <Button variant={m.armed?'destructive':'outline'} title={m.armed?'Disarm recording':'Arm recording'}
+         aria-label="Arm recording" aria-pressed={m.armed} onClick={()=>m.setArmed(!m.armed)}>
+         <Circle className={`size-4 ${m.armed?'fill-current':''}`}/>{m.armed?'Record armed':'Arm record'}
+       </Button>
+       <Button variant="ghost" aria-label="Undo edit" title="Undo your last edit"
+         onClick={m.undo}><Undo2 className="size-4"/>Undo</Button>
+     </div>
+     <div className="studio-transport-utilities">
+       <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">120 BPM · 4/4</span>
+       <Button variant="ghost" size="icon" aria-label="Toggle master mute" title={m.volume?'Mute':'Unmute'} onClick={()=>m.setVolume(m.volume>0?0:.65)}>{m.volume?<Volume2/>:<VolumeX/>}</Button>
+       <label htmlFor="studio-master-volume" className="text-[10px] text-muted-foreground sr-only">Master volume</label>
+       <input id="studio-master-volume" aria-label="Master volume" type="range" min="0" max="1" step=".01" value={m.volume}
+         onChange={e=>m.setVolume(Number(e.target.value))} className="studio-master-volume accent-mint-foreground"/>
+       {save&&<><Button size="sm" variant="outline" aria-label="Export loop" title="Download beat as JSON" onClick={exportLoop}><Download className="size-4"/>Save file</Button>
+          <Button size="sm" variant="ghost" aria-label="Import loop" title="Load beat from JSON" onClick={()=>input.current?.click()}><Upload className="size-4"/>Open file</Button>
+          <input ref={input} type="file" accept="application/json" className="hidden" onChange={async e=>{
+            const file=e.target.files?.[0];if(!file)return;
+            try{const data=JSON.parse(await file.text());if(!validPattern(data.pattern))throw new Error('Invalid beat');
+               m.load(data.pattern,typeof data.name==='string'?data.name.slice(0,80):'Imported loop');
+               toast.success('Loop imported.');
+            }catch{toast.error('Choose a valid 16-step BEAT DROP loop.');}e.target.value='';
+          }}/>
+        </>}
+     </div>
+   </div>
+   <p className="studio-transport-status" role="status">
+     <span className={`studio-transport-led ${m.playing?'running':''} ${m.armed?'recording':''}`} aria-hidden="true"/>
+     {recordStatus}
+   </p>
+ </div>;
 }
