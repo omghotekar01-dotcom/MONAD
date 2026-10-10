@@ -13,20 +13,20 @@ jobs:
         with:
           node-version: 22
       - name: Install exact app dependencies
-        run: npm install --legacy-peer-deps --no-audit --no-fund
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
       - name: Test React screens
         run: npm run test:design
+      - name: TypeScript design integration check
+        run: npx tsc --noEmit
       - name: Test legacy music and protocol
         run: npm run test:legacy
       - name: Compile Solidity
         run: npm run contracts:compile
       - name: Contract tests
         run: npm run contracts:test
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser UI integration checks
+        run: npm run test:e2e
       - name: Build React production app
         run: npm run build
-      - name: Output dependency lock to integration log
-        if: github.ref_name == 'feat/lovable-design-integration'
-        run: |
-          printf '%s\n' 'BEAT_DROP_LOCK_BEGIN'
-          cat package-lock.json
-          printf '%s\n' 'BEAT_DROP_LOCK_END'
