@@ -17,7 +17,8 @@
     "contracts:test": "hardhat --config hardhat.config.cjs test",
     "contracts:deploy:testnet": "hardhat --config hardhat.config.cjs run scripts/deploy.cjs --network monadTestnet",
     "test:design": "vitest run",
-    "test:e2e": "playwright test e2e/design.spec.cjs"
+    "test:e2e": "playwright test e2e/design.spec.cjs",
+    "chain:check": "node scripts/check-testnet.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
