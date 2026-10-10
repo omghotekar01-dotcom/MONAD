@@ -19,3 +19,22 @@
 - `npm ci` installs committed lockfile, `npm run test:e2e` runs browser smoke tests. Keep desktop/mobile layout and original studio working.
 - Live web + multiwallet behavior is NOT verified until actual testnet deployment and real transactions are witnessed.
 - Guide: `docs/MULTIPLAYER.md`.
+
+## Upgrade 5 Producer non-negotiables
+
+- Producer files: `src/producer.js` is a deterministic, explainable music
+  arranger; `src/producer-panel.js` owns drafts and explicit consent;
+  `docs/PRODUCER.md` explains accurately that this is **not** a trained ML model.
+- **No auto-write:** audition-only patterns must never mutate the canonical
+  note state, trigger chain edits, change payment shares or claim music rights.
+- A user must explicitly click `Apply idea`; live rooms are limited to the
+  current wallet's own seat while the on-chain round is accepting edits.
+- A complete four-track draft is **local only**. It cannot edit others'
+  instruments in a shared contract room.
+- Stale proposal validation must remain before any commit. Undo local bulk
+  changes as one action; on-chain edits require confirmation through existing
+  `room-controller.js`.
+- No external API charge/key or hidden music files; keep music playback via
+  the four bundled Tone.js sound engines.
+- Keep and extend domain/Playwright tests; current verified producer CI baseline
+  is 27 Node tests, 13 Hardhat tests, 16 desktop/mobile browser checks.
