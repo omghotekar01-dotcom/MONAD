@@ -99,7 +99,13 @@ export async function refreshWallet() {
 }
 export function walletEvents(listener) {
   if(!eip1193()?.on)return ()=>{};
-  const changed=()=>{clearSession();void refreshWallet().then(listener).catch(()=>listener(null));};
+  const changed=()=>{
+    // Disable delegated edits immediately after wallet/network changes, but
+    // KEEP the ephemeral signing key IN THIS TAB so its original owner can
+    // switch back and reclaim any unused testnet gas.
+    if(session)session.expiresAt=0;
+    void refreshWallet().then(listener).catch(()=>listener(null));
+  };
   eip1193().on("accountsChanged",changed);
   eip1193().on("chainChanged",changed);
   eip1193().on("disconnect",changed);
@@ -127,7 +133,8 @@ async function checkedWriter() {
   // previously connected wallet sign or receive credit under another account.
   const actual=await eip1193().request({method:"eth_accounts"});
   if(!actual?.[0] || actual[0].toLowerCase()!==account.toLowerCase()){
-    activeWallet=null;account=null;clearSession();
+    activeWallet=null;account=null;
+    if(session)session.expiresAt=0; // preserve owner-bound key for gas recovery
     throw new Error("MetaMask account changed. Reconnect the current wallet before submitting a transaction.");
   }
   await verifyRpc();
