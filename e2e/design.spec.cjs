@@ -126,3 +126,18 @@ test('new Studio toolbar shows labelled play, stop and recording controls on des
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
   expect(overflow).toBeLessThanOrEqual(2);
 });
+
+test('playing a piano key selects the same pitch for step-grid editing',async({page})=>{
+ await page.goto('/studio');
+ await page.waitForFunction(()=>document.documentElement.dataset.beatDropHydrated==='true');
+ await page.locator('button.instrument-synth').first().click();
+ const pitch=page.locator('#sequencer-pitch');
+ await expect(pitch).toHaveValue('6');
+ await page.getByRole('button',{name:'Play E3'}).click();
+ await expect(pitch).toHaveValue('3');
+ const step=page.getByRole('button',{name:/synth step 1/}).first();
+ await step.click();
+ await expect(step).toHaveAttribute('aria-label',/synth step 1, note 3/);
+ await pitch.selectOption('10');
+ await expect(page.getByRole('button',{name:'Play A4'})).toHaveAttribute('aria-pressed','true');
+});
