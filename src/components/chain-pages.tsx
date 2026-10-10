@@ -1,6 +1,7 @@
 import { NativeProducer } from './music/producer-native';
 import { MonadActivity } from './music/monad-activity';
 import { signaturePattern, SIGNATURE_SONG } from '@/lib/demo-song';
+import {readChainDraft,clearChainDraft,draftStepCount} from '@/lib/chain-draft';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, ArrowRight, Check, Copy, Wallet, Play, Pause, RotateCcw, Circle, ExternalLink, RefreshCw, Radio, Download, Music2 } from 'lucide-react';
@@ -227,14 +228,14 @@ export function ChainStudio({roomId}:{roomId:string}){
     catch(e){setActivity(chainError(e));toast.error(chainError(e));}
     finally{setBusy(false);}
   };
-  const publishSignatureSong=async()=>{
+  const [draft,setDraft]=useState(()=>readChainDraft());
+  const publishPattern=async(song:Pattern,label:string,isDraft=false)=>{
     const r=roomRef.current,owner=accountRef.current;
     if(!r||!owner||r.phase!=='Live'||!instruments.every(inst=>sameWallet(r.seats[instruments.indexOf(inst)],owner))){
       toast.error('You must own all four active on-chain instrument seats.');return;
     }
     if(flushing.current||pending.current.size){toast.error('Wait for pending edits to be confirmed.');return;}
-    if(!window.confirm('Publish the ORIGINAL “Midnight on Monad” pattern as up to 4 real Monad Testnet note-batch transactions? Wallet approvals and test MON gas are required. The round must still be live.'))return;
-    const song=signaturePattern();
+    if(!window.confirm('Publish '+label+' as up to 4 real Monad Testnet note-batch transactions? Wallet approvals and test MON gas are required. The round must still be live.'))return;
     flushing.current=true;setBusy(true);
     try{
       for(const inst of instruments){
@@ -248,7 +249,8 @@ export function ChainStudio({roomId}:{roomId:string}){
       }
       const confirmed=await refresh();if(confirmed)music.current.sync(confirmed.pattern);
       setActivity('All four parts confirmed. Use “Load transactions” below to verify actual hashes and note events.');
-      toast.success('Signature song recorded on Monad!');
+      toast.success(label+' recorded on Monad!');
+      if(isDraft){clearChainDraft();setDraft(null);}
     }catch(e){
       setActivity('Publish stopped: '+chainError(e)+' · Some earlier transactions may already be confirmed.');
       toast.error(chainError(e));const confirmed=await refresh();if(confirmed)music.current.sync(confirmed.pattern);
@@ -302,7 +304,12 @@ export function ChainStudio({roomId}:{roomId:string}){
     {room.phase==='Live'&&account&&instruments.every((inst,index)=>sameWallet(room.seats[index],account))&&<section className="studio-surface p-5 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow mb-2">ONE-PERSON ON-CHAIN DEMO</p><h3 className="section-title">Midnight on Monad</h3>
         <p className="text-xs text-muted-foreground mt-2">Publish our original 4-track loop. Each instrument is a separate signed note-batch transaction, not a transaction per audible hit.</p>
-      </div><Button disabled={busy||remaining<18} onClick={()=>void publishSignatureSong()}>Publish 4-track demo to Monad</Button></div>
+      </div><div className="flex flex-wrap gap-2">
+        {draft&&draftStepCount(draft.pattern)>0&&<Button disabled={busy||remaining<18}
+          onClick={()=>void publishPattern(draft.pattern,draft.title,true)}>Publish my draft to Monad · {draftStepCount(draft.pattern)} steps</Button>}
+        <Button variant={draft?'outline':'default'} disabled={busy||remaining<18}
+          onClick={()=>void publishPattern(signaturePattern(),SIGNATURE_SONG.title)}>Publish 4-track demo to Monad</Button>
+       </div></div>
       {remaining<18&&<p className="text-xs text-destructive mt-3">Not enough round time remaining to safely submit all four instrument transactions. Start a new room.</p>}
     </section>}
     {room.phase==='Live'&&eligible&&<section className="studio-surface p-5 sm:p-7">
@@ -389,7 +396,7 @@ export function ChainBeat({beatId}:{beatId:string}){
 }
 
 export function ChainCreatePage(){
-  const navigate=useNavigate();const [title,setTitle]=useState(''),[busy,setBusy]=useState(false),[status,setStatus]=useState('');
+  const navigate=useNavigate();const [title,setTitle]=useState(()=>readChainDraft()?.title??''),[busy,setBusy]=useState(false),[status,setStatus]=useState('');
   const create=async(event:React.FormEvent)=>{
     event.preventDefault();if(busy)return;setBusy(true);setStatus('Waiting for your MetaMask approval…');
     try{const roomId=await createChainRoom(title,hash=>setStatus('Transaction pending: '+transactionExplorer(hash)));
@@ -401,6 +408,11 @@ export function ChainCreatePage(){
     <p className="eyebrow mb-3">MONAD TESTNET / ON-CHAIN CREATION</p>
     <h1 className="page-title">Make room for a little magic.</h1>
     <p className="text-sm text-muted-foreground mt-4 mb-10">One room. Four instruments. Everyone credited for accepted final notes.</p>
+    {readChainDraft()&&<div className="studio-surface p-4 mb-5 text-xs">
+       <strong>Your local song draft is ready.</strong>
+       <p className="text-muted-foreground mt-2">{readChainDraft()?.title} · {draftStepCount(readChainDraft()!.pattern)} filled steps across four instruments.</p>
+       <p className="text-muted-foreground mt-1">After creating a real room, assign your wallet to all four seats, start the 90-second round, and click <strong>Publish my draft to Monad</strong>. The smart contract uses a fixed 120 BPM loop; a local Lo-fi tempo such as 84 BPM is <strong>not</strong> saved on-chain.</p>
+    </div>}
     <form onSubmit={event=>void create(event)} className="space-y-7">
       <label htmlFor="chain-room-name" className="block text-sm font-semibold">What are we calling it?</label>
       <input id="chain-room-name" className="field" maxLength={31} placeholder="Sunday kind of feeling" required value={title} onChange={event=>setTitle(event.target.value)}/>
