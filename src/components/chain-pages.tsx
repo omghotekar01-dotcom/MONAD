@@ -16,7 +16,7 @@ import {
   currentMainWallet, connectMainWallet, refreshMainWallet, watchWallet,
   fetchChainRoom, assignChainSeat, startChainRoom, finalizeChainRoom,
   sendChainNotes, authorizeChainSession, revokeChainSession,
-  fundChainSession, chainSessionAddress, chainSessionActive,
+  fundChainSession, reclaimChainSessionGas, chainSessionAddress, chainSessionActive,
   tipChainRoom, claimChainRoom, claimableChainRoom, formatTestMon,
   transactionExplorer, chainError, createChainRoom, listChainRooms, isOnChainId,
   type ChainRoom
@@ -157,10 +157,15 @@ export function ChainLobby({roomId}:{roomId:string}){
     <div className="mt-6"><MonadActivity roomId={roomId}/></div>
     {account&&mySeat&&room.phase!=='Finalized'&&<section className="studio-surface p-5 mt-6">
       <h3 className="text-sm font-semibold">Optional short-lived editing session</h3>
-      <p className="text-xs text-muted-foreground mt-2 mb-4">Authorize a 5-minute browser-memory key before starting. It needs separate testnet MON for gas; any unused gas may be lost when you refresh.</p>
+      <p className="text-xs text-muted-foreground mt-2 mb-4">Advanced / optional. Prefer using your main MetaMask wallet. Browser-session keys are volatile and not backed up: unused test MON may be lost on refresh or wallet switch. Reclaim unused gas before leaving.</p>
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="sm" disabled={!!busy} onClick={()=>void tx('Session authorized',hash=>authorizeChainSession(roomId,hash))}>Authorize session</Button>
-        {chainSessionAddress()&&<Button variant="outline" size="sm" disabled={!!busy} onClick={()=>void tx('Session funded',hash=>fundChainSession('0.01',hash))}>Fund 0.01 test MON</Button>}
+        {!chainSessionAddress()&&<Button variant="outline" size="sm" disabled={!!busy} onClick={()=>void tx('Session authorized',hash=>authorizeChainSession(roomId,hash))}>Authorize session</Button>}
+        {chainSessionActive(roomId)&&<Button variant="outline" size="sm" disabled={!!busy} onClick={()=>{
+          if(window.confirm('Send 0.01 TESTNET MON to a volatile browser key? Reclaim unused gas before refreshing or switching wallets.'))
+            void tx('Session funded',hash=>fundChainSession('0.01',hash));
+        }}>Fund 0.01 test MON</Button>}
+        {chainSessionAddress()&&<Button variant="outline" size="sm" disabled={!!busy}
+          onClick={()=>void tx('Unused gas reclaimed',hash=>reclaimChainSessionGas(hash))}>Reclaim unused gas</Button>}
         {chainSessionActive(roomId)&&<Button variant="ghost" size="sm" disabled={!!busy} onClick={()=>void tx('Session revoked',hash=>revokeChainSession(roomId,hash))}>Revoke</Button>}
       </div>
     </section>}
@@ -323,11 +328,17 @@ export function ChainStudio({roomId}:{roomId:string}){
       </section>
       <section className="studio-surface p-5"><p className="eyebrow mb-3">TRANSACTION STATUS</p><p role="status" className="text-xs text-muted-foreground leading-relaxed break-all">{activity||'Only confirmed edits are recorded on-chain.'}</p>
         {eligible&&room.phase==='Live'&&<div className="mt-5 flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={()=>void action('Session authorized',()=>authorizeChainSession(room.id))}>Authorize session</Button>
-          <Button size="sm" variant="outline" onClick={()=>void action('Session gas funded',()=>fundChainSession('0.01'))}>Fund test MON</Button>
-          <label className="flex items-center gap-2 text-[11px]"><input type="checkbox" checked={sessionMode} onChange={e=>setSessionMode(e.target.checked)}/>Use authorized session</label>
+          {!chainSessionAddress()&&<Button size="sm" variant="outline" disabled={busy} onClick={()=>void action('Session authorized',()=>authorizeChainSession(room.id))}>Authorize session</Button>}
+          {chainSessionActive(room.id)&&<Button size="sm" variant="outline" disabled={busy} onClick={()=>{
+            if(window.confirm('Fund a volatile browser key with 0.01 TEST MON? Reclaim unused gas before refreshing this page.'))
+              void action('Session gas funded',()=>fundChainSession('0.01'));
+          }}>Fund 0.01 test MON</Button>}
+          {chainSessionAddress()&&<Button size="sm" variant="outline" disabled={busy} onClick={()=>void action('Unused gas reclaimed',()=>reclaimChainSessionGas())}>Reclaim unused gas</Button>}
+          {chainSessionActive(room.id)&&<Button size="sm" variant="outline" disabled={busy} onClick={()=>void action('Session revoked',()=>revokeChainSession(room.id))}>Revoke</Button>}
+          <label className="flex items-center gap-2 text-[11px]"><input type="checkbox" disabled={busy||!chainSessionActive(room.id)}
+            checked={sessionMode&&chainSessionActive(room.id)} onChange={e=>setSessionMode(e.target.checked)}/>Use authorized session</label>
         </div>}
-        {eligible&&chainSessionAddress()&&<p className="text-[10px] text-muted-foreground mt-3">Browser key: {abbreviatedWallet(chainSessionAddress())} · lost on reload; fund only small amounts.</p>}
+        {eligible&&chainSessionAddress()&&<p className="text-[10px] text-muted-foreground mt-3">Temporary key: {abbreviatedWallet(chainSessionAddress())} · recover unused gas before closing this browser tab. Keys are never backed up.</p>}
       </section>
     </div>
     {room.phase==='Live'&&remaining===0&&<Button className="w-full h-12" disabled={busy} onClick={()=>void action('Round finalized',()=>finalizeChainRoom(room.id))}>Finalize finished loop on Monad <ArrowRight/></Button>}
