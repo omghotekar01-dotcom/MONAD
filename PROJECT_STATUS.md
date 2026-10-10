@@ -1,3 +1,59 @@
+# BEAT DROP — Upgrade 7: music + Monad transaction visibility
+
+**Code staged on `main` (October 10, 2026).**
+
+- Increased nominal Tone.js master gain approximately 2.5×, boosted
+  voice levels, added gentle synthesizer/pluck eighth-note echoes, compressor
+  and -1 dB peak limiter. Physical loudness remains device-dependent and
+  must be checked at a comfortable speaker/headphone volume.
+- Added original 4-track 16-step song `Midnight on Monad`. The original
+  musical pattern can be played locally or submitted through the same
+  four instrument-cell encodings used by the Monad contract.
+- Local one-click 4-seat rehearsal requires no wallet, is browser-only and
+  is NOT represented as real multiplayer.
+- Real Monad host can assign all four seats to a single testnet wallet via
+  sequential signed `assignSeat` transactions, then send the demo through
+  four real, bounded instrument-cell transactions while the 90s round is live.
+  This is genuine one-wallet testing and does not spoof independent people.
+- New real-RPC event explorer in chain room/lobby/studio/final Beat Card
+  shows recently recorded batch `NoteSet`, seat, start, finalize, tip and
+  claim events with wallet/hash/block/explorer links. The bounded historical
+  scan is **not** a full-chain log index; users can inspect older activity
+  through MonadVision externally.
+- New `npm run chain:check` read-only chain ID 10143/bytecode/interface
+  checker: requires user's own **public deployed address** in `.env.local`.
+- Exact wallet-safe MetaMask + Remix activation and one-account test walkthrough:
+  `docs/ACTIVATE_MONAD.md`.
+- Unit and desktop/mobile automated tests exercise original demo generation,
+  transaction log batch grouping and local one-account rehearsal.
+
+### Still NOT verified outside CI
+
+- No actual BeatDrop contract address or real deployment transaction has been
+  supplied or committed. We have **not** performed mainnet deployment.
+- Real Monad RPC event retrieval has not been independently validated against
+  a real deployed BeatDrop instance with live funds/claims.
+- Two independent wallets, hosted HTTPS deep links, real collaborative latency,
+  speaker-level measurements and a security audit remain incomplete.
+- Do not call local rehearsal a remote multi-user room. Do not call recorded
+  patterns an NFT, commercial royalty system or legally certified ownership.
+- Live activation requires the user's own MetaMask confirmations; never paste
+  a wallet seed/private key into chat or GitHub.
+
+## Activation
+
+1. Play `Midnight on Monad` in Solo Studio; tune master volume safely.
+2. Deploy `contracts/BeatDrop.sol` through Remix + testnet MetaMask.
+3. Set `VITE_BEATDROP_ADDRESS` to the **public** confirmed contract address
+   in local `.env.local`.
+4. Run `npm run chain:check` to prove the configured chain/bytecode/interface.
+5. Create a real jam; assign all four lanes to your wallet; start round;
+   publish the original demo, inspect hashes, finalize and optionally tip/claim.
+6. Host the TanStack Start server and recruit a second independent signer for
+   actual remote collaborative validation.
+
+---
+
 # BEAT DROP — STATUS: LOVABLE DESIGN INTEGRATION
 
 Updated: 2026-10-10
