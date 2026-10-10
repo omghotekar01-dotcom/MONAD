@@ -226,6 +226,7 @@ function downloadBeat(){
 }
 function loadBeat(file){
  if(!file)return;
+ if(roomController?.inRoom()){setMessage("Leave the on-chain room before importing a local pattern. Confirmed chain notes remain authoritative.");return;}
  file.text().then(text=>{pattern=deserialize(text);history=[];setMessage("Local beat loaded.");renderGrid();renderStats();})
  .catch(()=>setMessage("This file is not a valid Beat Drop loop."));
 }
