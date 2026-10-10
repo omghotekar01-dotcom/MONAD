@@ -33,6 +33,16 @@ export function currentMainWallet():string|null {return chain.walletAddress();}
 export function watchWallet(callback:(address:string|null)=>void):()=>void{return chain.walletEvents(callback);}
 export function transactionExplorer(hash:string){return chain.explorerTx(hash);}
 export function ensureContract(){if(!chainConfigured)throw new Error('Deploy BeatDrop.sol on Monad Testnet (10143), then set VITE_BEATDROP_ADDRESS. Live rooms are disabled without a contract.');}
+export type ChainEventName = 'RoomCreated'|'SeatAssigned'|'RoomStarted'|'NoteSet'|'RoomFinalized'|'TipReceived'|'TipAllocated'|'Claimed'|'SessionAuthorized'|'SessionRevoked';
+export interface ChainActivityItem{
+  name:ChainEventName;hash:string;block:number;index:number;owner:string|null;operator:string|null;
+  instrument:number|null;step:number|null;value:number|null;amount:string|null;eligibleMask:number|null;
+}
+export interface ChainActivity{fromBlock:bigint;toBlock:bigint;windowBlocks:number;events:ChainActivityItem[]}
+export async function fetchRoomActivity(id:string,lookback=4096):Promise<ChainActivity>{
+ ensureContract();if(!isOnChainId(id))throw new Error('Invalid on-chain room ID.');
+ return await chain.readRoomEvents(id,lookback) as ChainActivity;
+}
 export async function fetchChainRoom(id:string):Promise<ChainRoom>{
   ensureContract();if(!isOnChainId(id))throw new Error('Invalid on-chain room ID.');
   const raw=await chain.readRoom(id);
