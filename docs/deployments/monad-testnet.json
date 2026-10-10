@@ -1,0 +1,15 @@
+{
+  "project": "BEAT DROP",
+  "chain": "Monad Testnet",
+  "chainId": 10143,
+  "contract": "0x9568d1f7871f46E75F555D66f68fF248de6d37fD",
+  "deploymentTransaction": "0xd07eb66bad8b2b95fc3c52d8e36a99047d0af8bb9b5d21d477bc40cf3a53021e",
+  "deploymentBlock": 69806271,
+  "deployerPublicAddress": "0x6b1C2DEe7134Ff6798498ACeab3bfE1900C4C4a9",
+  "explorer": "https://testnet.monadvision.com/tx/0xd07eb66bad8b2b95fc3c52d8e36a99047d0af8bb9b5d21d477bc40cf3a53021e",
+  "contractExplorer": "https://testnet.monadvision.com/address/0x9568d1f7871f46E75F555D66f68fF248de6d37fD",
+  "publicRpc": "https://testnet-rpc.monad.xyz",
+  "evidence": "User-provided confirmed Hardhat deployment output and successful chain:check (chain 10143, 7163 bytes code, 90 sec, 16 batch).",
+  "sourceRevision": "Not recorded in deployment output",
+  "note": "Only public on-chain identifiers. No private keys, seed phrases, personal wallet secrets or server tokens."
+}
