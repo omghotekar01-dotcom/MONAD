@@ -5,6 +5,7 @@ import * as chain from '../chain.js';
 // @ts-ignore legacy ESM module has no published TypeScript declarations
 import { encodeCell, decodeCell, ZERO_ADDRESS } from '../room-utils.js';
 import { instruments, validPattern } from '@/lib/beat-drop';
+import { validateNoteBatch, parseSafeTestTip } from '@/lib/transaction-guards';
 
 export const chainConfigured: boolean = chain.CONTRACT_READY;
 export const explorerBase: string = chain.EXPLORER;
@@ -84,12 +85,12 @@ export async function assignChainSeat(id:string,index:number,address:string,onHa
 }
 export async function startChainRoom(id:string,onHash?:(hash:string)=>void){return chain.startRoom(id,onHash);}
 export async function finalizeChainRoom(id:string,onHash?:(hash:string)=>void){return chain.finalizeRoom(id,onHash);}
-export async function tipChainRoom(id:string,amount:string,onHash?:(hash:string)=>void){return chain.tipRoom(id,amount,onHash);}
+export async function tipChainRoom(id:string,amount:string,onHash?:(hash:string)=>void){parseSafeTestTip(amount);return chain.tipRoom(id,amount,onHash);}
 export async function claimChainRoom(id:string,onHash?:(hash:string)=>void){return chain.claimRoom(id,onHash);}
 export async function claimableChainRoom(id:string,address:string):Promise<bigint>{return chain.readClaim(id,address);}
 export async function sendChainNotes(id:string,instrument:Instrument,values:{step:number;value:number}[],owner:string,onHash?:(hash:string)=>void,session=false){
   if(!values.length)return;
-  if(!values.every(x=>Number.isInteger(x.step)&&x.step>=0&&x.step<16&&Number.isInteger(x.value)&&x.value>=0&&x.value<=(instrument==='drums'?15:16)))throw new Error('Invalid step or pitch');
+  validateNoteBatch(instrument,values);
   const sorted=[...values].sort((a,b)=>a.step-b.step);
   return chain.submitBatch(id,instruments.indexOf(instrument),sorted.map(x=>x.step),sorted.map(x=>x.value),owner,onHash,session);
 }
