@@ -314,3 +314,11 @@
  .studio-transport-buttons>button{flex:1;padding:0 9px;justify-content:center;}
  .studio-transport-utilities{justify-content:space-between;}
 }
+
+/* A played piano key becomes the note selected for the 16-step grid. */
+.performance-key.selected-note {
+  border-color:color-mix(in oklch,var(--mint-foreground) 60%,var(--border));
+  background:color-mix(in oklch,var(--mint) 15%,var(--card));
+  box-shadow:inset 0 -2px 0 color-mix(in oklch,var(--mint-foreground) 45%,transparent);
+}
+.performance-key.selected-note kbd{font-weight:700;color:var(--mint-foreground);}
