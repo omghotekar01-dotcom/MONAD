@@ -7,6 +7,8 @@ export function MusicProvider({children}:{children:ReactNode}) {
   const [pattern,setPattern]=useState<Pattern>(samplePattern());const patternRef=useRef(pattern);
   const [instrument,setInstrumentState]=useState<Instrument>('drums');const [selectedNote,setSelectedNote]=useState(1);
   const setInstrument=useCallback((i:Instrument)=>{setInstrumentState(i);setSelectedNote(i==='drums'?1:6);},[]);
+  const [tempo,setTempoState]=useState(120);
+  const setTempo=(bpm:number)=>{const safe=Math.max(65,Math.min(160,Math.round(bpm)));setTempoState(safe);audioEngine.tempo(safe);};
   const [playing,setPlaying]=useState(false);const [step,setStep]=useState(-1);const [armed,setArmed]=useState(false);const [title,setTitle]=useState('Mint condition');const [volume,setVolumeState]=useState(.65);const [unlocked,setUnlocked]=useState(false);
   const history=useRef<Pattern[]>([]);const generation=useRef(0);
   const remoteEdit=useRef<((instrument:Instrument,step:number,note:number,record:boolean)=>void)|null>(null);
@@ -25,14 +27,14 @@ export function MusicProvider({children}:{children:ReactNode}) {
     return()=>{delete document.documentElement.dataset['beatDropHydrated'];};
   },[]);
   useEffect(()=>()=>{audioEngine.stop();},[]);
-  const toggle=async()=>{if(playing){stop();return;}const current=++generation.current;try{await audioEngine.unlock();setUnlocked(true);if(current!==generation.current)return;audioEngine.volume(volume);await audioEngine.play(()=>patternRef.current,setStep);if(current!==generation.current){audioEngine.stop();return;}setPlaying(true);}catch{toast.error('Audio could not start. Please try again.');}};
+  const toggle=async()=>{if(playing){stop();return;}const current=++generation.current;try{await audioEngine.unlock();setUnlocked(true);if(current!==generation.current)return;audioEngine.volume(volume);audioEngine.tempo(tempo);await audioEngine.play(()=>patternRef.current,setStep);if(current!==generation.current){audioEngine.stop();return;}setPlaying(true);}catch{toast.error('Audio could not start. Please try again.');}};
   const trigger=async(i:Instrument,n:number,record=true)=>{setSelectedNote(n);try{await audioEngine.unlock();setUnlocked(true);audioEngine.volume(volume);audioEngine.trigger(i,n);if(record&&armed&&step>=0){
         if(remoteEdit.current)remoteEdit.current(i,step,n,true);
         else replace(recordStep(patternRef.current,i,step,n));
       }}catch{toast.error('Please enable audio to play.');}};
-  const load=(p:Pattern,t:string)=>{stop();history.current=[];patternRef.current=p;setPattern(p);setTitle(t);setArmed(false);};
+  const load=(p:Pattern,t:string,bpm=120)=>{stop();history.current=[];patternRef.current=p;setPattern(p);setTitle(t);setTempo(bpm);setArmed(false);};
   const undo=()=>{if(remoteEdit.current){toast('To reverse a live edit, tap that step again. The change must also be approved on Monad.');return;}
     const p=history.current.pop();if(p){patternRef.current=p;setPattern(p);}else toast('Nothing to undo yet.');};
   const setVolume=(n:number)=>{setVolumeState(n);audioEngine.volume(n);};
-  return <MusicContext.Provider value={{pattern,instrument,setInstrument,selectedNote,setSelectedNote,playing,step,armed,setArmed,title,load,toggle,stop,edit,replace,sync,setEditHandler,undo,trigger,volume,setVolume,unlocked}}>{children}</MusicContext.Provider>;
+  return <MusicContext.Provider value={{pattern,instrument,setInstrument,selectedNote,setSelectedNote,playing,step,armed,setArmed,title,tempo,setTempo,load,toggle,stop,edit,replace,sync,setEditHandler,undo,trigger,volume,setVolume,unlocked}}>{children}</MusicContext.Provider>;
 }
