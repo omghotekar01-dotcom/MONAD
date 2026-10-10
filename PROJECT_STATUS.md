@@ -44,3 +44,8 @@ Then open the local URL shown by Vite. For a deployable bundle, run `npm run bui
 - Blockchain deployment requires a secure local deployer wallet with testnet MON and RPC verification.
 - Hosting requires a connected deployment target.
 - GitHub API commits may not support explicit Git author overrides; inspect commit metadata.
+
+## GitHub verification note
+- Workflow `.github/workflows/verify.yml` was added; no completed workflow run observed yet.
+- GitHub API commits were attributed to login `omghotekar01-dotcom`, email `omghotekar01@gmail.com`, but author display **name** is `Omiiii` rather than requested `Om Ghotekar`. This GitHub file API does not offer a commit-author override. Follow-up local Git commits must set the requested identity before committing; existing history has not been rewritten.
+- Monad foundation Notion resources URL was provided, but its complete contents were not accessible for strict checklist verification in this execution. Must audit the full official checklist before judging compliance.
