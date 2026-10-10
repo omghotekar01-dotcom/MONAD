@@ -56,9 +56,11 @@ Nothing here mints an NFT or registers copyright or legally binding royalties.
    requires a separately deployed V2 contract, front-end address migration
    and new tests. Do NOT replace the proven deployed address silently.
 3. **Session keys are volatile.** They only exist in browser memory. If the tab
-   closes, changes wallet or crashes before a reclaim, unused session-gas
-   funds may remain inaccessible. Gas used, base-fee fluctuations and small
-   residual dust cannot be recovered. Prefer the main wallet for demos.
+   closes or crashes before a reclaim, unused session-gas funds may remain
+   inaccessible. Changing wallet now disables delegated editing but retains
+   the temporary signing key in the same tab, so the original owner can switch
+   back and reclaim gas. Gas used, base-fee fluctuations and small residual
+   dust cannot be recovered. Prefer the main wallet for demos.
 4. **Last editor in an owned lane controls that lane's final values**.
    A `NoteSet` event is evidence of a confirmed write, not necessarily
    final credit. Only nonzero final notes determine tip eligibility.
