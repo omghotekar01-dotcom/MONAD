@@ -1,51 +1,72 @@
-# BEAT DROP — project status
+# BEAT DROP — Project status
 
 Updated: 2026-10-10
 
-## Scope
-Four-instrument browser music workspace, followed by authenticated Monad testnet collaboration and payments.
+## Verified development milestones
 
-## Implemented (unverified until local build)
-- Vite app and source modules.
-- Four synthesized instruments using Tone.js.
-- One-bar 16-step sequencer at 120 BPM.
-- Keyboard / pointer pads / step grid / playhead.
-- Local practice, recording arm, edit undo, save/open pattern JSON.
-- Distinct drum-hit voices and 16 melodic pitches.
-- Validation and initial domain-model unit tests.
-- Dark responsive studio interface.
+### Milestone 1 — Local music studio
+- Four Tone.js synthesizer/drum sounds and visible instrument seats.
+- Keyboard, pointer pads, 16-step grid at 120 BPM, play, recording arm, undo.
+- Local JSON pattern save/load, distinct drum masks, 16 melodic pitches.
+- Responsive UI; no wallet required for practice.
+- **CI result:** 8 sequencer unit tests passed; Vite production build succeeded.
+- Local user reported that the project runs.
 
-## Not implemented
-- Wallet, on-chain rooms, QR invitations, session keys, chain batching.
-- Contracts and contract tests, tips, payout claims.
-- Finalized beat card, replay page, live deployment.
-- AI Producer.
+### Milestone 2 — Solidity foundation
+- `contracts/BeatDrop.sol` with Lobby → Live → Finalized lifecycle.
+- Host-assigned, frozen instrument seat ownership and 90-second deadline.
+- Owner or short-lived room-scoped session edit permission; revocation.
+- Explicit sorted, bounded cell batches; idempotent writes; validation.
+- Persisted pattern; post-deadline finalization callable by anyone.
+- Transparent contributor snapshot; no payout for empty seats.
+- MON tipping into room-scoped, seat-weighted claimable balances.
+- Exact remainder allocation, repeated tip aggregation, pull claims.
+- Claim reentrancy guard and blocked double withdrawals.
+- `hardhat.config.cjs`, contract test suite, safe deploy script,
+  `network/monad.testnet.json`, updated GitHub Actions workflow.
+- **CI verification:** GitHub Actions run
+  https://github.com/omghotekar01-dotcom/MONAD/actions/runs/38035527002
+  completed successfully: 2 Solidity files compiled, **13 contract tests passed**,
+  8 sequencer tests passed, production web bundle built.
 
-## Verification
-- GitHub repository initialized with app files.
-- **npm install, tests, browser audio checks and production build have not yet been executed in this report.** Passing results must be recorded after execution.
-- No contract deployed or wallets charged.
+## Incomplete / not verified
+- **Contract is NOT deployed to Monad Testnet.** No address or tx exists.
+- **Frontend is NOT yet connected to the contract.** Local practice still operates.
+- Browser audio quality and responsive interactions remain manual/device checks.
+- Wallet setup, session-key creation/storage/funding, transaction batching, event
+  reconciliation, room invitations, multiplayer convergence, Beat Cards,
+  tips and claims in the browser are **Milestones 3–4**.
+- Full Notion hackathon resources checklist is not yet independently accessible
+  from the provided URL; review prior to submission.
+- Root dependency lockfile not committed yet; npm install resolves dependencies.
+- No external security audit. This is testnet-only prototype code.
+- GitHub API commits use main-account login `omghotekar01-dotcom` and email
+  `omghotekar01@gmail.com` but show GitHub profile author name `Omiiii`,
+  not the requested `Om Ghotekar` display name. Existing history was not rewritten.
 
-## Next
-1. Install and verify the web app / fix issues.
-2. Add Solidity contracts with seat and session-key permissions, fixed payout snapshots and native testnet MON claims.
-3. Wire contract to app and check two-browser convergence.
-4. Finalize shareable Beat Cards and demo deployment.
+## Test this upgrade locally
 
-## Test locally
+From the existing MONAD folder in VS Code (PowerShell):
+
 ```powershell
+git pull
 npm install
 npm test
+npm run contracts:compile
+npm run contracts:test
+npm run build
 npm run dev
 ```
-Then open the local URL shown by Vite. For a deployable bundle, run `npm run build`.
 
-## External blockers
-- Blockchain deployment requires a secure local deployer wallet with testnet MON and RPC verification.
-- Hosting requires a connected deployment target.
-- GitHub API commits may not support explicit Git author overrides; inspect commit metadata.
+The contract test suite executes on a local Hardhat chain and requires no wallet.
 
-## GitHub verification note
-- Workflow `.github/workflows/verify.yml` was added; no completed workflow run observed yet.
-- GitHub API commits were attributed to login `omghotekar01-dotcom`, email `omghotekar01@gmail.com`, but author display **name** is `Omiiii` rather than requested `Om Ghotekar`. This GitHub file API does not offer a commit-author override. Follow-up local Git commits must set the requested identity before committing; existing history has not been rewritten.
-- Monad foundation Notion resources URL was provided, but its complete contents were not accessible for strict checklist verification in this execution. Must audit the full official checklist before judging compliance.
+## Next milestone — browser-to-Monad
+- Wallet connect and network check (chain ID 10143).
+- On-chain room create, host assignment, lobby/start/jam/finalize screens.
+- Scoped temporary session authorization plus explicit separate gas top-up.
+- Transaction batching, pending/failure display, chain-state reconciliation.
+- Reliable two-independent-browser demo.
+- Then Beat Cards, replay, tips and claims.
+
+## Deployment
+None yet. Source and deployment guidance: [docs/CONTRACTS.md](docs/CONTRACTS.md).
