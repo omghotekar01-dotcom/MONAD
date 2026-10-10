@@ -1,4 +1,6 @@
 import { NativeProducer } from './music/producer-native';
+import { MonadActivity } from './music/monad-activity';
+import { signaturePattern, SIGNATURE_SONG } from '@/lib/demo-song';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, ArrowRight, Check, Copy, Wallet, Play, Pause, RotateCcw, Circle, ExternalLink, RefreshCw, Radio, Download, Music2 } from 'lucide-react';
@@ -71,7 +73,8 @@ export function ChainRoomEntry({roomId}:{roomId:string}){
       params={room.phase==='Finalized'?{beatId:room.id} as never:{roomId:room.id} as never}>
        {room.phase==='Lobby'?'Enter the lobby':room.phase==='Live'?'Open the live studio':'Play the finished beat'} <ArrowRight/>
     </Link></Button>
-    <p className="text-xs text-muted-foreground mt-5">Listening needs no wallet. Editing requires an approved seat, wallet signature and testnet MON gas.</p>
+    <p className="text-xs text-muted-foreground mt-5 mb-6">Listening needs no wallet. Editing requires an approved seat, wallet signature and testnet MON gas.</p>
+    <MonadActivity roomId={roomId}/>
   </div>;
 }
 export function ChainLobby({roomId}:{roomId:string}){
@@ -92,6 +95,23 @@ export function ChainLobby({roomId}:{roomId:string}){
     finally{setBusy('');}
   };
   const saveSeat=(idx:number,address:string)=>void tx('Seat assignment',hash=>assignChainSeat(room.id,idx,address,hash));
+  const seatAll=async()=>{
+    if(!isHost||!account||room.phase!=='Lobby'||busy)return;
+    if(room.seats.some(s=>s&&!sameWallet(s,account))){toast.error('Other people already own seats. Rehearsal will not overwrite their seats.');return;}
+    if(!window.confirm('Assign every free instrument seat to your OWN testnet wallet? Each assignment is a real gas-paid transaction requiring wallet approval.'))return;
+    setBusy('One-person rehearsal');
+    try{
+      for(let index=0;index<4;index++){
+        if(sameWallet(room.seats[index],account))continue;
+        setActivity('Assigning '+instruments[index]+' to '+abbreviatedWallet(account)+'…');
+        await assignChainSeat(room.id,index,account,hash=>setActivity('Pending on Monad: '+transactionExplorer(hash)));
+        await refresh();
+      }
+      setActivity('Your testnet wallet owns all four instrument seats. Start the jam when ready.');
+      toast.success('Four seats now assigned on-chain.');
+    }catch(e){setActivity('Seat approval stopped: '+chainError(e));toast.error(chainError(e));await refresh();}
+    finally{setBusy('');}
+  };
   const copy=async()=>{const link=new URL('/room/'+room.id,window.location.origin).toString();try{await navigator.clipboard.writeText(link);toast.success('Shareable room link copied.');}catch{toast.error('Copy unavailable; share the URL shown in your browser.');}};
   return <div className="max-w-5xl mx-auto py-3">
     <div className="flex items-center justify-between gap-4 mb-8">
@@ -106,6 +126,11 @@ export function ChainLobby({roomId}:{roomId:string}){
     </div>
     <div className="flex items-end justify-between gap-4 mb-5"><div><h2 className="section-title">Your part in this sound.</h2><p className="text-xs text-muted-foreground mt-2">The host assigns wallet addresses. Seats are permanently frozen when recording starts.</p></div>
       {!account?<Button variant="outline" onClick={()=>void connect()}><Wallet/>Connect wallet</Button>:<OwnerChip address={account}/>}</div>
+    {isHost&&room.phase==='Lobby'&&<div className="studio-surface p-4 mb-5 flex flex-wrap gap-4 items-center justify-between">
+      <div><h3 className="font-semibold text-sm">Testing alone? Take all four seats.</h3>
+        <p className="text-[11px] text-muted-foreground mt-1">Your ONE wallet can own Drums, Bass, Synth and Pluck. This performs a real transaction for each unassigned seat; it does not simulate four independent wallets.</p></div>
+      <Button size="sm" disabled={!!busy||!account||room.seats.some(s=>s&&!sameWallet(s,account))} onClick={()=>void seatAll()}>Assign my wallet to all 4 seats</Button>
+    </div>}
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">{instruments.map((inst,idx)=>{
       const Icon=instrumentIcons[inst],owner=room.seats[idx],mine=sameWallet(owner,account);
       return <article key={inst} className={`studio-surface p-5 instrument-${inst}`}>
@@ -128,6 +153,7 @@ export function ChainLobby({roomId}:{roomId:string}){
         {room.phase==='Live'&&<Button asChild><Link to="/room/$roomId/studio" params={{roomId}}>Open live studio <ArrowRight/></Link></Button>}
         {room.phase==='Finalized'&&<Button asChild><Link to="/beat/$beatId" params={{beatId:roomId}}>Open Beat Card <ArrowRight/></Link></Button>}</div>
     </div>
+    <div className="mt-6"><MonadActivity roomId={roomId}/></div>
     {account&&mySeat&&room.phase!=='Finalized'&&<section className="studio-surface p-5 mt-6">
       <h3 className="text-sm font-semibold">Optional short-lived editing session</h3>
       <p className="text-xs text-muted-foreground mt-2 mb-4">Authorize a 5-minute browser-memory key before starting. It needs separate testnet MON for gas; any unused gas may be lost when you refresh.</p>
@@ -201,6 +227,33 @@ export function ChainStudio({roomId}:{roomId:string}){
     catch(e){setActivity(chainError(e));toast.error(chainError(e));}
     finally{setBusy(false);}
   };
+  const publishSignatureSong=async()=>{
+    const r=roomRef.current,owner=accountRef.current;
+    if(!r||!owner||r.phase!=='Live'||!instruments.every(inst=>sameWallet(r.seats[instruments.indexOf(inst)],owner))){
+      toast.error('You must own all four active on-chain instrument seats.');return;
+    }
+    if(flushing.current||pending.current.size){toast.error('Wait for pending edits to be confirmed.');return;}
+    if(!window.confirm('Publish the ORIGINAL “Midnight on Monad” pattern as up to 4 real Monad Testnet note-batch transactions? Wallet approvals and test MON gas are required. The round must still be live.'))return;
+    const song=signaturePattern();
+    flushing.current=true;setBusy(true);
+    try{
+      for(const inst of instruments){
+        const confirmed=await fetchChainRoom(r.id);
+        if(!canPlay(confirmed,owner,inst))throw new Error('The editing deadline has passed before all song parts were confirmed.');
+        const updates=song[inst].flatMap((value,step)=>value!==confirmed.pattern[inst][step]?[{step,value}]:[]);
+        if(!updates.length)continue;
+        setActivity('Saving '+inst+' to Monad: '+updates.length+' changed steps. Approve in your wallet.');
+        await sendChainNotes(r.id,inst,updates,owner,hash=>setActivity('Pending '+inst+' transaction: '+transactionExplorer(hash)),
+          sessionMode&&chainSessionActive(r.id));
+      }
+      const confirmed=await refresh();if(confirmed)music.current.sync(confirmed.pattern);
+      setActivity('All four parts confirmed. Use “Load transactions” below to verify actual hashes and note events.');
+      toast.success('Signature song recorded on Monad!');
+    }catch(e){
+      setActivity('Publish stopped: '+chainError(e)+' · Some earlier transactions may already be confirmed.');
+      toast.error(chainError(e));const confirmed=await refresh();if(confirmed)music.current.sync(confirmed.pattern);
+    }finally{flushing.current=false;setBusy(false);}
+  };
   const approveProducer=(inst:Instrument,updates:Array<{step:number;value:number}>,draft:Pattern)=>{
     if(!room||!canPlay(room,account,inst)){toast.error('Your current wallet cannot edit this instrument.');return false;}
     if(flushing.current||pending.current.size){toast.error('Finish or confirm pending edits before applying a new Producer idea.');return false;}
@@ -246,6 +299,12 @@ export function ChainStudio({roomId}:{roomId:string}){
         <span className="text-xs text-muted-foreground">{busy?'Waiting for confirmation':pending.current.size?'Edits queued':'Listening / ready'}</span>
       </div>
     </section>
+    {room.phase==='Live'&&account&&instruments.every((inst,index)=>sameWallet(room.seats[index],account))&&<section className="studio-surface p-5 sm:p-7">
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow mb-2">ONE-PERSON ON-CHAIN DEMO</p><h3 className="section-title">Midnight on Monad</h3>
+        <p className="text-xs text-muted-foreground mt-2">Publish our original 4-track loop. Each instrument is a separate signed note-batch transaction, not a transaction per audible hit.</p>
+      </div><Button disabled={busy||remaining<18} onClick={()=>void publishSignatureSong()}>Publish 4-track demo to Monad</Button></div>
+      {remaining<18&&<p className="text-xs text-destructive mt-3">Not enough round time remaining to safely submit all four instrument transactions. Start a new room.</p>}
+    </section>}
     {room.phase==='Live'&&eligible&&<section className="studio-surface p-5 sm:p-7">
       <p className="eyebrow mb-4">SMART PRODUCER / YOUR ASSIGNED LANE</p>
       <NativeProducer allowed={userCanEdit} shared onApprove={approveProducer}/>
@@ -264,6 +323,7 @@ export function ChainStudio({roomId}:{roomId:string}){
       </section>
     </div>
     {room.phase==='Live'&&remaining===0&&<Button className="w-full h-12" disabled={busy} onClick={()=>void action('Round finalized',()=>finalizeChainRoom(room.id))}>Finalize finished loop on Monad <ArrowRight/></Button>}
+    <MonadActivity roomId={roomId}/>
     <Waveform/>
   </div>;
 }
@@ -323,6 +383,7 @@ export function ChainBeat({beatId}:{beatId:string}){
         <p className="text-[10px] text-muted-foreground mt-5">Testnet only. This card is not a minted NFT, copyright certificate or streaming-royalty distribution.</p>
       </div>
     </div>
+    <div className="mt-8"><MonadActivity roomId={beatId}/></div>
     <section className="studio-surface p-6 mt-9"><h2 className="section-title mb-5">A closer listen.</h2><Sequencer/></section>
   </div>;
 }
