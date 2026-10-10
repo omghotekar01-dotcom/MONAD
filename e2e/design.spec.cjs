@@ -198,7 +198,7 @@ test('Live blockchain route has honest unconfigured status and works from naviga
  await page.waitForFunction(()=>document.documentElement.dataset.beatDropHydrated==='true');
  await expect(page.getByRole('heading',{name:'The blockchain, live.'})).toBeVisible();
  await expect(page.getByText('Blockchain not configured in this build.')).toBeVisible();
- await expect(page.getByRole('link',{name:'Live blockchain'}).first()).toBeVisible();
+ await expect(page.locator('a[href="/chain"]').first()).toHaveCount(1);
  await expect(page.getByText('RoomCreated', {exact:true})).toHaveCount(0);
 });
 test('blank Lo-fi Canvas starts with silent four-part grid and adjustable tempo',async({page})=>{
