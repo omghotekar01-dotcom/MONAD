@@ -43,6 +43,18 @@ export async function fetchRoomActivity(id:string,lookback=4096):Promise<ChainAc
  ensureContract();if(!isOnChainId(id))throw new Error('Invalid on-chain room ID.');
  return await chain.readRoomEvents(id,lookback) as ChainActivity;
 }
+export interface ChainOverviewEvent{
+ name:ChainEventName;roomId:string|null;hash:string;block:number;index:number;owner:string|null;operator:string|null;
+ instrument:number|null;step:number|null;value:number|null;amount:string|null;
+}
+export interface ChainOverview{
+ chainId:number;contract:string;latestBlock:bigint;roomCount:bigint;
+ fromBlock:bigint;toBlock:bigint;scanComplete:boolean;events:ChainOverviewEvent[];
+}
+export const beatDropContractAddress: string|null=chain.CONTRACT_ADDRESS;
+export async function fetchChainOverview():Promise<ChainOverview>{
+ ensureContract();return await chain.readRecentContractEvents(1024) as ChainOverview;
+}
 export async function fetchChainRoom(id:string):Promise<ChainRoom>{
   ensureContract();if(!isOnChainId(id))throw new Error('Invalid on-chain room ID.');
   const raw=await chain.readRoom(id);
