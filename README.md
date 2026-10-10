@@ -1,56 +1,64 @@
 # BEAT DROP
+### Four strangers. One beat. Everyone credited.
 
-**Four strangers. One beat. Everyone credited.**
+A playful four-instrument music room on **Monad Testnet**.
 
-A four-seat collaborative browser music sequencer built for **Monad Testnet**.
-Create a 90-second jam, play a shared 16-step loop, see which instrument seats
-contributed, and replay the finished music card. Listeners may tip **testnet
-MON** to eligible contributors through the contract.
+Built from the **exact original light-theme Lovable UI/UX** in the user's
+[craft-ui-essentials](https://github.com/omghotekar01-dotcom/craft-ui-essentials)
+repository, merged with the existing MONAD smart-contract and music project.
 
-## Current release
+![BEAT DROP design is mint glass, cobalt ribbon and coral sculpture](src/assets/mint-cover.jpg)
 
-| Area | State |
+## The experience
+
+The website preserves the original Lovable React/TanStack design language:
+minimal white canvas, mint accents, left navigation, sculptural album artwork,
+audio player docked at the bottom, and mobile adaptations.
+
+| Navigation | What works |
 | --- | --- |
-| Local drums, bass, synth and pluck studio | Implemented; usable without a wallet |
-| Local Beat Card preview, deterministic SVG, replay mute/solo, volume | Implemented |
-| Solidity room, seat, attribution and MON distribution contract | Implemented; automated tests |
-| Wallet connect, real room creation/joins, live edits, final cards | Frontend implemented; requires deployed contract address |
-| Two independently verified public-wallet jam and claim demo | **Not yet validated** |
-| Deployed testnet contract and public website | **Not yet deployed** |
+| Discover | Home, original artwork and featured sample loops |
+| Solo studio | Real Tone.js audio, 4 instruments, 16 steps, keyboard/pads, transport, mixer, recording, undo, JSON import/export |
+| Producer | Offline 4-style, 3-energy music suggestions, audition and human-approved edits, local four-track drafts |
+| Jam rooms | Honest local previews until configured; actual on-chain room list after deployment |
+| Create / Join | Real Monad testnet room transaction or numeric invite when deployed |
+| Lobby | Host-approved wallet seats and optional scoped session key |
+| Live studio | 90-second rounds, seat-authorized edits, transaction status and chain sync |
+| Drops / Library | Original Lovable sample and local browser-save browsing |
+| Beat Card | Sample/local replay, or final on-chain pattern, eligible seat attribution, test MON tip/claim |
+| Profile / How it works | Original Lovable routes |
 
-**The UI intentionally disables Create Jam when no verified testnet contract
-address is configured.** A local practice session is not a simulated on-chain
-transaction. Do not interpret a passing browser test as proof of deployed
-multiplayer.
+**Important:** The original Lovable source was a local-only frontend preview;
+the deployed-room routes now connect to the retained `BeatDrop.sol` contract.
+No testnet contract has yet been deployed in this project or independently
+tested with two real wallets. Without `VITE_BEATDROP_ADDRESS`, website rooms
+remain visibly local-only. Sample beats are never represented as real
+user-minted on-chain assets.
 
-## Start local studio (Windows / VS Code)
+## Run locally
 
-Requirements: Node.js 22, npm, a modern browser.
+Requirements: Node.js **22** and npm; no Docker.
 
 ```powershell
 git clone https://github.com/omghotekar01-dotcom/MONAD.git
 cd MONAD
-npm ci
+npm ci --legacy-peer-deps
 npm run dev
 ```
 
-Open the URL that Vite prints (typically http://localhost:5173).
+Open the local URL printed by Vite. You can immediately test Solo Studio
+and samples without a wallet.
 
-Controls: `1/2/3/4` inspect Drums/Bass/Synth/Pluck;
-`A S D F` are drum hits; melodic lower row `A S D F G H J K`,
-upper row `Q W E R T Y U I`. `SPACE` arms/disarms recording;
-`Z` undoes. Touch pads and an interactive one-bar 16-step grid are
-also available. Playback and note entry start audio after a user action.
+Quick controls: `1/2/3/4` instruments, drum `A/S/D/F`, melodic
+`A S D F G H J K` and `Q W E R T Y U I`; `Space` arm recording,
+`Z` undo. Audio activates only after the first user gesture.
 
-Make at least one note, then click **Preview Beat Card**:
-play, solo/mute each stem, view pattern-derived art, download SVG,
-and adjust master volume. This mode is explicitly **LOCAL** and free.
-
-## Verified build and tests
+## Validate
 
 ```powershell
-npm ci
-npm test
+npm run test:design
+npx tsc --noEmit
+npm run test:legacy
 npm run contracts:compile
 npm run contracts:test
 npx playwright install chromium
@@ -58,98 +66,56 @@ npm run test:e2e
 npm run build
 ```
 
-The browser tests cover two Chromium viewport types; MIDI/audio fidelity,
-live-wallet authorizations and physical phones require separate manual checks.
-The current verification status is maintained in [PROJECT_STATUS.md](PROJECT_STATUS.md).
+GitHub Actions runs the same test/check/build sequence in a known environment.
+Passing automated tests does not prove real cross-device timing, mobile wallet
+transaction reliability, or on-chain tips.
 
-## Upgrade 5 — on-device Smart Producer & Remix Studio
+## Monad Testnet
 
-A working producer is built into the music studio, available immediately
-without a wallet, testnet deployment or cloud API subscription:
+- Chain ID **10143**.
+- Public RPC: `https://testnet-rpc.monad.xyz`.
+- Native currency: **testnet MON**.
+- Faucet: https://faucet.monad.xyz.
+- Never use a wallet holding mainnet funds to deploy the prototype.
 
-- Select a single instrument, style (House / Lo-fi / Trap / Ambient)
-  and energy (Sparse / Balanced / Energetic).
-- Generate three deterministic, pattern-aware arrangements.
-- Inspect the changed step count and visual diff; **Audition** any idea
-  without mutating the original loop.
-- Explicitly click **Apply idea** to approve changes. Undo is available.
-- **Draft 4-track loop** produces a complete local arrangement with all four
-  instrument voices. Preview it and apply it with one Undo checkpoint.
-- In live shared rooms, only the assigned owner may submit a suggestion
-  for their own instrument, using the existing on-chain confirmation path.
-  The full four-track action stays local-only to protect other contributors.
+Deploy the Solidity contract once through MetaMask + Remix (or a dedicated
+local throwaway testnet signer); then add its **public address**:
 
-The implementation is an **explainable, deterministic rule-based engine**,
-not a trained generative AI model. There are no API keys, external requests,
-auto-submitted chain edits or hidden ownership changes. Suggestions are never
-credited until their human-assigned wallet owner explicitly approves edits
-that the chain accepts.
+```dotenv
+VITE_BEATDROP_ADDRESS=0xYOUR_DEPLOYED_TESTNET_CONTRACT
+```
 
-See [Producer guide, tested behaviour and demo](docs/PRODUCER.md).
+Restart the app. Remember: the frontend is now **TanStack Start + Nitro SSR**,
+not a static Vite `dist` site. Public hosting needs a compatible server
+runtime/adapter with deep-link support.
 
-## Real Monad Testnet multiplayer
+For details read [DESIGN INTEGRATION](docs/DESIGN_INTEGRATION.md)
+and [MONAD MULTIPLAYER](docs/MULTIPLAYER.md).
 
-Network: **Monad Testnet**, chain ID **10143**; native currency testnet MON;
-RPC `https://testnet-rpc.monad.xyz`, explorer
-https://testnet.monadvision.com, faucet https://faucet.monad.xyz.
+## How contributor credit works
 
-To activate live multiplayer:
+The contract freezes four seat wallet addresses on Start. In a 90-second
+round, each approved owner may change only their lane and needs a confirmed
+testnet transaction. When the round closes, **only lanes retaining at least
+one accepted note** count toward equal tip shares. A wallet holding two
+eligible lanes gets two shares. No platform royalty fee, automatic NFT mint,
+creator identity proof, or commercial streaming royalties are claimed.
 
-1. Compile and deploy `contracts/BeatDrop.sol` **to testnet only** with
-   a dedicated wallet (MetaMask + Remix is supported; no seed phrase in chat).
-2. Add its exact public address to local `.env.local`:
-   `VITE_BEATDROP_ADDRESS=0x...`
-3. Restart Vite; verify Create Jam / Join Jam and actual confirmations.
-4. To share rooms across devices, host the frontend on public HTTPS
-   with the *same* public testnet contract address.
+The Producer remains a deterministic music-rule generator, not a trained LLM
+or unrestricted blockchain bot. All edits require explicit player approval.
 
-See [Multiplayer setup and demo acceptance](docs/MULTIPLAYER.md) and
-[Smart contract protocol](docs/CONTRACTS.md).
+## Files
 
-Accepted notes, frozen instrument owners, eligibility and tip balances are
-read from the contract. Live audio and optimistic user inputs are browser-local
-until confirmed. The app makes no sample-accurate cross-device synchronization
-claim.
+- `src/components/` — original light Lovable interface and new chain screens
+- `src/routes/` — TanStack file-based navigation
+- `src/styles.css` — exact source tokens, with accessibility refinements
+- `src/assets/` — exact supplied mint, blue and coral cover art
+- `src/services/monad-bridge.ts` — typed contract and music adapter
+- `src/chain.js`, `src/producer.js`, `src/room-utils.js` — retained original logic
+- `contracts/BeatDrop.sol` — retained Solidity room and distribution protocol
+- `tests/`, `src/test/`, `test/`, `e2e/` — automated checks
+- `docs/DESIGN_INTEGRATION.md` — route mapping, design provenance, deployment changes
+- `PROJECT_STATUS.md` — completed and outstanding tests
 
-## Beat Cards and payment policy
-
-[Beat Card guide](docs/BEAT_CARD.md): local preview, deterministic artwork,
-stem isolation, credits, replay, no hidden backing notes.
-
-Each instrument seat retaining >=1 accepted note in the finalized pattern
-gets one equal entitlement to native testnet MON tips. Multiple seats owned
-by one wallet aggregate their entitlement. Empty seats earn nothing.
-The contract rounds tips deterministically and supports pull-based claims.
-No platform fee is charged in this prototype.
-
-**Important:** Attribution is account activity, **not** legal proof of
-copyright, commercial song royalty collection, or verified human identity.
-Beat Cards are not automatically NFTs; no external streaming royalties are
-collected.
-
-## Security and privacy
-
-- No mainnet deployment or production-funds readiness is claimed.
-- Do **not** paste seed phrases, deployer keys, or session keys into
-  GitHub, chat, screenshots or browser-exposed `VITE_*` variables.
-- Browser editing session keys are scoped, short-lived, and memory-only;
-  they must be separately funded with small amounts of testnet MON and
-  leftover funds could be stranded on reload.
-- Session keys cannot reassign instruments or withdraw a contributor's tips.
-- The Solidity contract is a hackathon prototype, **not security audited**.
-- Work proceeds in verified Git milestones; unrun checks are never marked passed.
-
-## Repo guide
-
-- `src/main.js` — Tone.js studio and input controls
-- `src/room-controller.js`, `src/chain.js` — room UI and testnet integration
-- `src/beat-card.js`, `src/beat-card-view.js` — portable pattern art / credits
-- `contracts/BeatDrop.sol` — 90-second room contract and native MON payouts
-- `tests/`, `test/`, `e2e/` — domain, Hardhat and browser checks
-- `docs/` — deployment, demo and design specifications
-- `PROJECT_STATUS.md` — verified progress, blockers and next actions
-
-All development commits should use **Om Ghotekar
-<omghotekar01@gmail.com>** as local Git author, attributed to account
-`omghotekar01-dotcom`. The GitHub connector may use the profile's own
-display name; this is documented in the status file.
+**Prototype security disclaimer:** contracts have no independent audit; do
+not use real money or treat an on-chain note record as legal proof of ownership.
