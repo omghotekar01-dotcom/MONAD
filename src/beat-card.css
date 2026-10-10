@@ -1,0 +1,31 @@
+.local-card-section{margin:24px 0;scroll-margin-top:24px}.beat-card{display:grid;grid-template-columns:minmax(0,1.03fr) minmax(0,1fr);overflow:hidden;border:1px solid #3b4452;background:#1b2029;border-radius:16px;box-shadow:0 24px 80px #0005;min-width:0;text-align:left}
+.beat-cover{display:flex;flex-direction:column;background:#11151c;min-width:0}.beat-cover-art{aspect-ratio:730/530;width:100%;display:grid;place-items:center}.beat-cover-art svg{display:block;width:100%;height:100%}.beat-cover-label{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:19px 22px;border-top:1px solid #313945}
+.beat-cover-label .eyebrow{font-size:9px}.beat-code{font:700 11px 'Space Grotesk',monospace;color:#cbd6e6;letter-spacing:1px}
+.beat-information{display:flex;flex-direction:column;gap:15px;min-width:0;padding:29px 26px}
+.beat-information h3{font:700 clamp(23px,3vw,33px) 'Space Grotesk',sans-serif;letter-spacing:-1px;line-height:1.15;margin:0;overflow-wrap:anywhere}
+.beat-subtitle{font-size:12px;color:#9ca8b7;margin:-6px 0 0;line-height:1.5}
+.beat-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #353d49;border-bottom:1px solid #353d49;padding:16px 0;gap:5px}
+.beat-counts div{display:flex;flex-direction:column;gap:6px}.beat-counts strong{font:700 22px 'Space Grotesk',sans-serif}.beat-counts span{font-size:8px;letter-spacing:1.3px;color:#8f9baa;font-weight:700}
+.beat-play-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.beat-play-actions button{border-radius:7px;border:1px solid #4c5665;background:#262e39;color:#e6ebf1;padding:11px 13px;font-size:11px;font-weight:700;cursor:pointer}
+.beat-play-actions .beat-play-button{background:#f0ba76;border-color:#f0ba76;color:#12151b}
+.beat-play-actions button:hover{filter:brightness(1.13)}
+.beat-help{font-size:11px;line-height:1.7;color:#9ca8b8;margin:-4px 0 0}
+.beat-stems{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.beat-stem{border:1px solid #3a4451;border-left:3px solid var(--stem);border-radius:8px;background:#222933;padding:12px;min-width:0}
+.stem-head{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.stem-head strong{font-size:11px;letter-spacing:.7px}.stem-head span,.stem-owner{font-size:10px;color:#9ba7b7}
+.stem-owner{margin:9px 0;font-family:'Space Grotesk',monospace}
+.stem-buttons{display:flex;gap:7px}.stem-buttons button{border:1px solid #505a69;border-radius:5px;background:#2d3540;padding:7px 11px;font-size:9px;letter-spacing:1px;color:#ced5e1;font-weight:800;cursor:pointer}
+.stem-buttons button.selected{background:var(--stem);border-color:var(--stem);color:#10131a}
+.stem-buttons button:hover{border-color:#f4f5f7}
+.beat-credits{border-top:1px solid #333c49;padding-top:17px;display:flex;flex-direction:column;gap:11px}
+.beat-credits>.eyebrow{font-size:10px}.credit-wallet{display:flex;align-items:center;gap:10px}
+.credit-avatar{display:grid;place-items:center;width:31px;height:31px;border:1px solid #4a5666;border-radius:50%;background:#303747;font-size:10px;font-weight:800;color:#d5e1ef}
+.credit-wallet>div{display:flex;flex-direction:column;gap:4px;min-width:0}.credit-wallet strong{font-size:12px;overflow-wrap:anywhere}
+.credit-wallet small{font-size:10px;color:#a4b0c1}.credit-share{margin-left:auto;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;color:#f3c48e}
+.credit-footnote,.credit-empty{font-size:10px;line-height:1.75;color:#97a2b3;margin:2px 0}.beat-footer{display:flex;justify-content:space-between;gap:9px;flex-wrap:wrap;font-size:9px;letter-spacing:1px;color:#8996a7;padding-top:13px;border-top:1px solid #333c49}
+.room-beat-art{margin:16px 0 21px}.room-beat-art .beat-information{padding:25px}.room-beat-art .beat-cover{min-height:320px}
+@media(max-width:850px){.beat-card{grid-template-columns:1fr}.beat-cover-art{max-height:390px}.beat-cover-label{padding:14px 18px}.beat-information{padding:22px 19px}.room-beat-art .beat-cover{min-height:0}}
+@media(max-width:430px){.beat-information{padding:18px 12px}.beat-stems{gap:6px}.beat-stem{padding:9px}.stem-head{flex-direction:column;align-items:flex-start;gap:4px}.beat-cover-art{max-height:320px}.beat-play-actions button{padding:9px 11px}.beat-counts strong{font-size:20px}}
+@media(prefers-reduced-motion:reduce){.beat-card *, .beat-card *:before{transition:none!important;animation:none!important}}
