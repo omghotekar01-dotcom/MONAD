@@ -219,3 +219,14 @@ test('blank Lo-fi Canvas starts with silent four-part grid and adjustable tempo'
  await expect(page.getByText('This is a local song, not a recorded Monad contribution.')).toBeVisible();
  await expect(page.getByRole('link',{name:/Create real on-chain jam/})).toBeVisible();
 });
+
+test('Production-bound TanStack Start pages never request the old Vite source entry',async({page})=>{
+ const legacyRequests=[];
+ page.on('request',request=>{if(new URL(request.url()).pathname==='/src/main.js')legacyRequests.push(request.url());});
+ const response=await page.goto('/');
+ expect(response?.status()).toBe(200);
+ await page.waitForFunction(()=>document.documentElement.dataset.beatDropHydrated==='true');
+ await expect(page.getByRole('heading',{name:'BEAT DROP.'})).toBeVisible();
+ expect(await page.locator('script[src="/src/main.js"]').count()).toBe(0);
+ expect(legacyRequests).toEqual([]);
+});
