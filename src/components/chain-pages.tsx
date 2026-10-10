@@ -156,11 +156,11 @@ export function ChainLobby({roomId}:{roomId:string}){
         {room.phase==='Finalized'&&<Button asChild><Link to="/beat/$beatId" params={{beatId:roomId}}>Open Beat Card <ArrowRight/></Link></Button>}</div>
     </div>
     <div className="mt-6"><MonadActivity roomId={roomId}/></div>
-    {account&&mySeat&&room.phase!=='Finalized'&&<section className="studio-surface p-5 mt-6">
+    {account&&mySeat&&(room.phase!=='Finalized'||chainSessionAddress())&&<section className="studio-surface p-5 mt-6">
       <h3 className="text-sm font-semibold">Optional short-lived editing session</h3>
       <p className="text-xs text-muted-foreground mt-2 mb-4">Advanced / optional. Prefer using your main MetaMask wallet. Browser-session keys are volatile and not backed up: unused test MON may be lost on refresh or wallet switch. Reclaim unused gas before leaving.</p>
       <div className="flex flex-wrap items-center gap-2">
-        {!chainSessionAddress()&&<Button variant="outline" size="sm" disabled={!!busy} onClick={()=>void tx('Session authorized',hash=>authorizeChainSession(roomId,hash))}>Authorize session</Button>}
+        {!chainSessionAddress()&&room.phase!=='Finalized'&&<Button variant="outline" size="sm" disabled={!!busy} onClick={()=>void tx('Session authorized',hash=>authorizeChainSession(roomId,hash))}>Authorize session</Button>}
         {chainSessionActive(roomId)&&<Button variant="outline" size="sm" disabled={!!busy} onClick={()=>{
           if(window.confirm('Send 0.01 TESTNET MON to a volatile browser key? Reclaim unused gas before refreshing or switching wallets.'))
             void tx('Session funded',hash=>fundChainSession('0.01',hash));
@@ -414,6 +414,11 @@ export function ChainBeat({beatId}:{beatId:string}){
           <Button variant="outline" disabled={!!pending||claimable===0n||!account} onClick={handleClaim}>Claim tips</Button>
         </div>
         {!account&&<Button variant="ghost" className="mt-3" onClick={()=>void connectMainWallet().then(setAccount).catch(e=>toast.error(chainError(e)))}>Connect wallet to tip or claim</Button>}
+        {account&&chainSessionAddress()&&<div className="mt-5 pt-4 border-t border-border">
+          <p className="text-xs text-muted-foreground mb-2">A volatile browser key is still present. Reclaim its unused test MON before closing this tab—even though the beat is already finalized.</p>
+          <Button size="sm" variant="outline" disabled={!!pending}
+            onClick={()=>void transact('Unused session gas reclaimed',hash=>reclaimChainSessionGas(hash))}>Reclaim unused session gas</Button>
+        </div>}
         {activity&&<p role="status" className="mt-4 text-xs text-muted-foreground break-all">{activity}</p>}
         {lastHash&&<a className="mt-3 inline-flex text-xs items-center gap-2 underline break-all" href={transactionExplorer(lastHash)} target="_blank" rel="noreferrer">Verify latest transaction on MonadVision <ExternalLink className="size-3.5"/></a>}
         <p className="text-[10px] text-muted-foreground mt-5">Testnet only. This card is not a minted NFT, copyright certificate or streaming-royalty distribution.</p>
