@@ -7,10 +7,18 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "contracts:compile": "hardhat --config hardhat.config.cjs compile",
+    "contracts:test": "hardhat --config hardhat.config.cjs test",
+    "contracts:deploy:testnet": "hardhat --config hardhat.config.cjs run scripts/deploy.cjs --network monadTestnet"
   },
   "dependencies": {
     "tone": "^15.1.22",
     "vite": "^7.1.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.18",
+    "dotenv": "^16.6.1"
   }
 }
