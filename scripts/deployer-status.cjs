@@ -1,12 +1,13 @@
 // Checks a locally created deployer's test MON balance before gas-paid deployment.
 const fs=require('node:fs');
 const path=require('node:path');
+const {deployerEnvPath}=require('./deployer-path.cjs');
 const dotenv=require('dotenv');
 const {Wallet,JsonRpcProvider,formatEther}=require('ethers');
 const network=require('../network/monad.testnet.json');
 
 async function main(){
- const envFile=path.resolve(process.cwd(),'.env.deploy.local');
+ const envFile=deployerEnvPath();
  if(!fs.existsSync(envFile))throw new Error('First run: npm run deployer:prepare');
  const vars=dotenv.parse(fs.readFileSync(envFile));
  const key=vars.DEPLOYER_PRIVATE_KEY;
