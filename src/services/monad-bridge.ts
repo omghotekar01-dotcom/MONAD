@@ -96,6 +96,12 @@ export async function sendChainNotes(id:string,instrument:Instrument,values:{ste
 export async function authorizeChainSession(id:string,onHash?:(hash:string)=>void){return chain.authorizeSession(id,onHash);}
 export async function revokeChainSession(id:string,onHash?:(hash:string)=>void){return chain.revokeSession(id,onHash);}
 export async function fundChainSession(amount:string,onHash?:(hash:string)=>void){return chain.fundSession(amount,onHash);}
+export async function reclaimChainSessionGas(onHash?:(hash:string)=>void):Promise<{hash:string|null;amount:bigint;remaining?:bigint}>{
+ return await chain.reclaimSessionGas(onHash);
+}
+export async function chainSessionGasBalance():Promise<bigint>{return await chain.readSessionGas();}
+export function forgetChainSessionKey(){chain.clearSession();}
+
 export const chainSessionActive=(id:string)=>chain.sessionActive(id);
 export const chainSessionAddress=():string|null=>chain.sessionAddress();
 export function formatTestMon(value:bigint){return chain.formatMon(value);}
