@@ -40,3 +40,28 @@ test("no page-level horizontal overflow in supported viewport", async ({page}) =
   }));
   expect(sizes.page).toBeLessThanOrEqual(sizes.viewport+1);
 });
+
+test("local Beat Card artwork and mute/solo controls work without a wallet", async ({page}) => {
+  await page.goto("/");
+  const preview=page.getByRole("button",{name:/Preview Beat Card/});
+  await expect(preview).toBeDisabled();
+  await page.locator("#grid button").first().click();
+  await expect(preview).toBeEnabled();
+  await preview.click();
+  const card=page.getByRole("region",{name:"Local Beat Card preview"});
+  await expect(card).toBeVisible();
+  await expect(card.getByText("LOCAL STUDIO / PREVIEW")).toBeVisible();
+  await expect(card.locator("svg")).toHaveCount(1);
+  await expect(card.getByText("not a finalized chain record", {exact:false})).toBeVisible();
+  const mute=card.getByRole("button",{name:"Mute drums"});
+  const solo=card.getByRole("button",{name:"Solo bass"});
+  await expect(mute).toHaveAttribute("aria-pressed","false");
+  await mute.click();
+  await expect(mute).toHaveAttribute("aria-pressed","true");
+  await solo.click();
+  await expect(solo).toHaveAttribute("aria-pressed","true");
+  await mute.click();
+  await expect(mute).toHaveAttribute("aria-pressed","false");
+  await page.getByRole("button",{name:/Close Beat Card/}).click();
+  await expect(card).toBeHidden();
+});
