@@ -25,3 +25,32 @@ This is not copyright registration or automatic external music royalty distribut
 ## Author
 
 Project commit identity: **Om Ghotekar <omghotekar01@gmail.com>** (`omghotekar01-dotcom`).
+
+## Milestone 2 — smart-contract foundation
+
+A Solidity contract and Hardhat security tests have been added, **but they
+are not deployed or wired into the studio yet**. Read the
+[protocol and testnet deployment guide](docs/CONTRACTS.md).
+
+```powershell
+git pull
+npm install
+npm test
+npm run contracts:compile
+npm run contracts:test
+npm run build
+npm run dev
+```
+
+The existing local music controls remain usable without a wallet. Hardhat
+tests operate on an in-memory development blockchain and use **no testnet funds**.
+
+Next integration: MetaMask / wallet connection, live room links, explicit
+user-approved authorization of short-lived editing keys, transaction status,
+confirmed shared pattern sync, and final Beat Card replay/tipping.
+
+**Do not deploy to Monad mainnet. Do not share any wallet seed phrase,
+private key, or session key in chat.** For real testnet deployment, use a
+separate test-only wallet; verify the RPC chain ID is 10143. 
+
+Status, including what was actually tested: [PROJECT_STATUS.md](PROJECT_STATUS.md).
