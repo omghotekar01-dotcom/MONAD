@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createPattern, withNote, INSTRUMENTS } from "../src/sequencer.js";
-import {GENRES,ENERGIES,analyzeBeat,generateSuggestions,applySuggestion,laneChanges,laneSignature,suggestionIsCurrent} from "../src/producer.js";
+import {GENRES,ENERGIES,analyzeBeat,generateSuggestions,applySuggestion,laneChanges,laneSignature,suggestionIsCurrent,generateFullBeat,fullBeatIsCurrent,applyFullBeat} from "../src/producer.js";
 test("all 4 instruments × 4 genres × 3 energy levels produce exactly three actionable ideas",()=>{
  for(const instrument of INSTRUMENTS)for(const style of Object.keys(GENRES))for(const energy of [1,2,3]){
   const original=createPattern();
@@ -53,4 +53,24 @@ test("invalid input is rejected before production",()=>{
  assert.throws(()=>generateSuggestions(createPattern(),{style:"unknown"}),/supported style/);
  assert.throws(()=>generateSuggestions(createPattern(),{energy:0}),/Energy/);
  assert.deepEqual(Object.keys(ENERGIES),["1","2","3"]);
+});
+
+test("full starter beat creates four instrument contributions and preserves original",()=>{
+ const start=createPattern();
+ const full=generateFullBeat(start,{style:"house",energy:2});
+ assert.equal(full.kind,"full");
+ assert.equal(full.changes.length>0,true);
+ assert.deepEqual(full.pattern.drums.some(x=>x.length>0),true);
+ for(const inst of INSTRUMENTS)assert.equal(full.pattern[inst].some(x=>x.length>0),true);
+ assert.deepEqual(start,createPattern());
+ assert.deepEqual(applyFullBeat(start,full),full.pattern);
+ assert.equal(fullBeatIsCurrent(withNote(start,"drums",0,1),full),false);
+ assert.throws(()=>applyFullBeat(withNote(start,"bass",0,1),full),/stale/);
+});
+test("full starter respects validated melodic monophony for all styles",()=>{
+ for(const style of Object.keys(GENRES)){
+   const full=generateFullBeat(createPattern(),{style,energy:3});
+   for(const inst of INSTRUMENTS.filter(x=>x!=="drums"))
+     assert.ok(full.pattern[inst].every(c=>c.length<=1));
+ }
 });
