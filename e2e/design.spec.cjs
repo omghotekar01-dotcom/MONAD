@@ -167,3 +167,28 @@ test('letter notes work right after clicking instrument selector without breakin
  await page.keyboard.press('d');
  await expect(page.getByRole('button',{name:'Play E3'})).not.toHaveClass(/down/);
 });
+
+test('original Midnight on Monad song loads and can be played without any wallet',async({page})=>{
+ await page.goto('/studio');
+ await page.waitForFunction(()=>document.documentElement.dataset.beatDropHydrated==='true');
+ const tutorial=page.getByRole('region',{name:'Getting started with music'});
+ await tutorial.getByRole('button',{name:/Load .*Midnight on Monad/}).click();
+ await expect(page.getByRole('button',{name:/drums step 16, note 12/})).toBeVisible();
+ await expect(page.getByRole('button',{name:/synth step 3, note 8/})).toBeVisible();
+ await page.getByRole('button',{name:'Play beat'}).first().click();
+ await expect(page.getByRole('button',{name:'Pause beat'}).first()).toBeVisible();
+ await page.getByRole('button',{name:'Stop beat'}).first().click();
+});
+test('single visitor rehearses every instrument seat using local 4-player simulator',async({page})=>{
+ await page.goto('/studio');
+ await page.waitForFunction(()=>document.documentElement.dataset.beatDropHydrated==='true');
+ await page.getByRole('button',{name:'Rehearse 4 players alone'}).click();
+ await expect(page).toHaveURL(/\/room\/BD-[A-F0-9]{6}\/lobby/);
+ await expect(page.getByRole('button',{name:'Leave seat'})).toHaveCount(4);
+ await page.getByRole('button',{name:/Start 90-second jam/}).click();
+ await expect(page).toHaveURL(/\/room\/BD-[A-F0-9]{6}\/studio/,{timeout:10000});
+ await expect(page.getByRole('button',{name:/drums step 16, note 12/})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Play beat'}).first()).toBeVisible();
+ await page.getByRole('button',{name:'Finish local round'}).click();
+ await expect(page).toHaveURL(/\/beat\/local-bd-/);
+});
