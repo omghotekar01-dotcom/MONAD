@@ -141,3 +141,13 @@ test('playing a piano key selects the same pitch for step-grid editing',async({p
  await pitch.selectOption('10');
  await expect(page.getByRole('button',{name:'Play A4'})).toHaveAttribute('aria-pressed','true');
 });
+
+test('pressing Play actually starts and stops the browser music transport',async({page})=>{
+ await page.goto('/studio');
+ await page.waitForFunction(()=>document.documentElement.dataset.beatDropHydrated==='true');
+ await page.getByRole('button',{name:'Play beat'}).first().click();
+ await expect(page.getByRole('button',{name:'Pause beat'}).first()).toBeVisible({timeout:10000});
+ await expect(page.getByText(/Playing your 16-step loop/)).toBeVisible();
+ await page.getByRole('button',{name:'Stop beat'}).first().click();
+ await expect(page.getByRole('button',{name:'Play beat'}).first()).toBeVisible();
+});
