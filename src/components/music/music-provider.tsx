@@ -19,8 +19,8 @@ export function MusicProvider({children}:{children:ReactNode}) {
   useEffect(()=>{
     // TanStack SSR paints instantly; mark the control surface ready only
     // after React's click and keyboard handlers have been attached.
-    document.documentElement.dataset.beatDropHydrated='true';
-    return()=>{delete document.documentElement.dataset.beatDropHydrated;};
+    document.documentElement.dataset['beatDropHydrated']='true';
+    return()=>{delete document.documentElement.dataset['beatDropHydrated'];};
   },[]);
   useEffect(()=>()=>{audioEngine.stop();},[]);
   const toggle=async()=>{if(playing){stop();return;}const current=++generation.current;try{await audioEngine.unlock();setUnlocked(true);if(current!==generation.current)return;audioEngine.volume(volume);await audioEngine.play(()=>patternRef.current,setStep);if(current!==generation.current){audioEngine.stop();return;}setPlaying(true);}catch{toast.error('Audio could not start. Please try again.');}};
