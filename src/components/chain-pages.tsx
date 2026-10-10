@@ -14,7 +14,7 @@ import {
   sendChainNotes, authorizeChainSession, revokeChainSession,
   fundChainSession, chainSessionAddress, chainSessionActive,
   tipChainRoom, claimChainRoom, claimableChainRoom, formatTestMon,
-  transactionExplorer, chainError,
+  transactionExplorer, chainError, createChainRoom, listChainRooms, isOnChainId,
   type ChainRoom
 } from '@/services/monad-bridge';
 
@@ -306,5 +306,85 @@ export function ChainBeat({beatId}:{beatId:string}){
       </div>
     </div>
     <section className="studio-surface p-6 mt-9"><h2 className="section-title mb-5">A closer listen.</h2><Sequencer/></section>
+  </div>;
+}
+
+export function ChainCreatePage(){
+  const navigate=useNavigate();const [title,setTitle]=useState(''),[busy,setBusy]=useState(false),[status,setStatus]=useState('');
+  const create=async(event:React.FormEvent)=>{
+    event.preventDefault();if(busy)return;setBusy(true);setStatus('Waiting for your MetaMask approval…');
+    try{const roomId=await createChainRoom(title,hash=>setStatus('Transaction pending: '+transactionExplorer(hash)));
+      toast.success('Room confirmed on Monad Testnet');void navigate({to:'/room/$roomId/lobby',params:{roomId}});}
+    catch(e){setStatus(chainError(e));toast.error(chainError(e));}finally{setBusy(false);}
+  };
+  return <div className="max-w-2xl mx-auto py-5">
+    <Link to="/explore" className="text-xs text-muted-foreground flex items-center gap-2 mb-8"><ArrowLeft className="size-3"/>Back to jam rooms</Link>
+    <p className="eyebrow mb-3">MONAD TESTNET / ON-CHAIN CREATION</p>
+    <h1 className="page-title">Make room for a little magic.</h1>
+    <p className="text-sm text-muted-foreground mt-4 mb-10">One room. Four instruments. Everyone credited for accepted final notes.</p>
+    <form onSubmit={event=>void create(event)} className="space-y-7">
+      <label htmlFor="chain-room-name" className="block text-sm font-semibold">What are we calling it?</label>
+      <input id="chain-room-name" className="field" maxLength={31} placeholder="Sunday kind of feeling" required value={title} onChange={event=>setTitle(event.target.value)}/>
+      <p className="text-[11px] text-muted-foreground">The title must fit in 31 UTF-8 bytes. Your wallet is the immutable host. Room names and contributions are publicly readable on Monad Testnet.</p>
+      <div className="grid grid-cols-3 gap-4 py-6 border-y border-border">
+        <div><strong className="text-2xl">120</strong><p className="text-xs text-muted-foreground">BPM</p></div>
+        <div><strong className="text-2xl">90</strong><p className="text-xs text-muted-foreground">Seconds</p></div>
+        <div><strong className="text-2xl">16</strong><p className="text-xs text-muted-foreground">Steps</p></div>
+      </div>
+      <p className="text-xs text-muted-foreground">Your wallet must be connected to Monad Testnet (chain ID 10143) with enough TESTNET MON for gas. No real funds are requested.</p>
+      <Button type="submit" className="w-full h-12" disabled={busy||!title.trim()}>{busy?'Waiting for blockchain confirmation…':'Create real jam room'}<ArrowRight/></Button>
+      {status&&<p role="status" className="text-xs text-muted-foreground break-all">{status}</p>}
+    </form>
+  </div>;
+}
+export function ChainJoinPage(){
+  const [code,setCode]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  const navigate=useNavigate();
+  const enter=async(e:React.FormEvent)=>{
+    e.preventDefault();
+    let raw=code.trim();try{const url=new URL(raw);raw=url.pathname.match(/\/room\/([0-9]+)/)?.[1]??url.searchParams.get('room')??raw;}catch{/* entered a room ID */}
+    if(!isOnChainId(raw)){setError('Enter a positive Monad room number or complete invite URL.');return;}
+    setBusy(true);try{await fetchChainRoom(raw);void navigate({to:'/room/$roomId',params:{roomId:raw}});}
+    catch(e){setError(chainError(e));}finally{setBusy(false);}
+  };
+  return <div className="max-w-md mx-auto py-14">
+    <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center mb-6"><Radio className="size-5"/></div>
+    <p className="eyebrow mb-3">SHARED MUSIC / MONAD TESTNET</p><h1 className="page-title">Got a room in mind?</h1>
+    <p className="text-sm text-muted-foreground mt-4 mb-8">Every room has a real on-chain ID. No wallet is needed just to listen.</p>
+    <form onSubmit={e=>void enter(e)}>
+      <label htmlFor="chain-join-code" className="text-xs font-semibold mb-3 block">Room number or invitation link</label>
+      <input id="chain-join-code" className="field" value={code} onChange={e=>{setCode(e.target.value);setError('');}} placeholder="e.g. 12" required/>
+      {error&&<ErrorNote>{error}</ErrorNote>}
+      <Button disabled={busy} className="w-full mt-5 h-11">{busy?'Looking up room…':'Find room'}<ArrowRight/></Button>
+    </form><Link to="/explore" className="text-xs text-muted-foreground mt-7 block text-center">Or explore available rooms →</Link>
+  </div>;
+}
+export function ChainExplorePage(){
+  const [rooms,setRooms]=useState<ChainRoom[]>([]),[search,setSearch]=useState(''),[filter,setFilter]=useState('All rooms'),[busy,setBusy]=useState(true),[error,setError]=useState('');
+  const load=useCallback(async()=>{setBusy(true);
+    try{setRooms(await listChainRooms(24));setError('');}catch(e){setError(chainError(e));}finally{setBusy(false);}
+  },[]);
+  useEffect(()=>{void load();},[load]);
+  const visible=rooms.filter(room=>(filter==='All rooms'||room.phase===filter)&&[room.id,room.name].join(' ').toLowerCase().includes(search.toLowerCase()));
+  return <div>
+    <div className="flex items-center justify-between gap-4 mb-8">
+      <div><p className="eyebrow mb-3">MONAD TESTNET / RECENT ON-CHAIN ROOMS</p><h1 className="page-title">Find your next sound.</h1><p className="text-sm text-muted-foreground mt-3">Every room is loaded from the verified contract. No sample rooms are shown as live.</p></div>
+      <Button asChild><Link to="/create">Create jam <ArrowRight/></Link></Button>
+    </div>
+    <div className="flex flex-col sm:flex-row gap-3 justify-between mb-6">
+      <div className="tab-control">{['All rooms','Lobby','Live','Finalized'].map(value=><Button key={value} variant="ghost" size="sm" className={filter===value?'selected':''} onClick={()=>setFilter(value)}>{value}</Button>)}</div>
+      <div className="flex gap-2"><input className="field" aria-label="Search on-chain rooms" placeholder="Name or room number" value={search} onChange={e=>setSearch(e.target.value)}/>
+        <Button variant="outline" size="icon" aria-label="Refresh rooms" onClick={()=>void load()}><RefreshCw/></Button></div>
+    </div>
+    {error&&<ErrorNote>{error}</ErrorNote>}
+    {busy?<p className="text-xs text-muted-foreground py-16">Reading rooms from Monad…</p>:
+      visible.length?<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">{visible.map((room,idx)=><Link key={room.id} to="/room/$roomId" params={{roomId:room.id}} className="studio-surface p-5 block hover:border-foreground/30 transition-colors">
+      <div className="flex justify-between items-center gap-3"><span className="pill">{statusName(room)}</span><span className="text-xs text-muted-foreground">#{room.id}</span></div>
+      <h2 className="text-lg font-semibold mt-8 mb-2">{room.name}</h2><p className="text-xs text-muted-foreground">Hosted by {abbreviatedWallet(room.host)}</p>
+      <div className="flex gap-1.5 mt-6">{instruments.map((inst,i)=><span key={inst} className={`w-7 h-7 rounded-full instrument-${inst} instrument-bg flex items-center justify-center text-[10px] instrument-color`}>{room.seats[i]?'●':'○'}</span>)}</div>
+      <div className="flex justify-between mt-5 pt-4 border-t border-border text-xs"><span>{room.seats.filter(Boolean).length}/4 seats assigned</span><span>Open room →</span></div>
+      </Link>)}</div>:
+      <div className="studio-surface text-center py-16"><Music2 className="size-7 mx-auto text-muted-foreground mb-4"/><h2 className="text-base font-semibold">It's quiet right now.</h2><p className="text-xs text-muted-foreground mt-3 mb-6">Create the first room, or refresh to check for new ones.</p><Button asChild><Link to="/create">Create jam</Link></Button></div>}
+    <p className="text-[11px] text-muted-foreground mt-6">Showing up to 24 most recent testnet rooms, including completed ones. RPC polling is eventual, not sample-accurate.</p>
   </div>;
 }
