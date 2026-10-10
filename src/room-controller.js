@@ -1,3 +1,4 @@
+import "./rooms.css";
 import QRCode from "qrcode";
 import { INSTRUMENTS, LABELS, createPattern } from "./sequencer.js";
 import {
