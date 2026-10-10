@@ -139,6 +139,17 @@ export function ChainDashboard(){
         <a className="text-xs underline shrink-0 inline-flex gap-1 items-center" href={transactionExplorer(tx.hash)} target="_blank" rel="noreferrer">Verify TX <ExternalLink className="size-3.5"/></a>
       </div>)}</div>}
     </section>
+    <section className="studio-surface p-5 sm:p-6 space-y-5" aria-label="What Monad actually records">
+      <p className="eyebrow">HOW WEB3 POWERS BEAT DROP</p>
+      <h2 className="section-title">Instant sound. Verifiable credit.</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs leading-relaxed">
+        <div><h3 className="font-semibold mb-2">Recorded by Monad</h3>
+          <p className="text-muted-foreground">Room ID and host, four wallet-assigned instrument seats, the final four-by-sixteen note grid, confirmed note-edit transaction hashes, and equal-per-eligible-seat testnet MON tip/claim accounting.</p></div>
+        <div><h3 className="font-semibold mb-2">Played in your browser</h3>
+          <p className="text-muted-foreground">The actual synthesized audio, speaker volume, Lo-fi tempo settings, cover images, and browser-only drafts are not stored on-chain. Each audible beat does not require a transaction.</p></div>
+      </div>
+      <p className="text-[11px] text-muted-foreground border-t border-border pt-4">Credit is based on the frozen final pattern, not number of historical edits. One wallet owning four eligible seats receives their combined tip allocation. Beat Cards are not automatically NFTs, copyright registrations or licensed streaming royalties.</p>
+    </section>
     <p className="text-[11px] text-muted-foreground pb-7">This is a recent-block RPC viewer, not an exhaustive index or proof of copyright. Counts for notes/finalizations summarize the latest 12 accessible rooms; transactions never include raw synthesized audio. Chain confirmation, not a local button click, determines authorship attribution.</p>
   </>}
  </div>;
