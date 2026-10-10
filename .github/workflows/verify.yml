@@ -40,6 +40,11 @@ jobs:
       - name: Verify Vercel Functions output
         run: |
           npm run build:vercel
+          test ! -f index.html
           test -f .vercel/output/config.json
           test -d .vercel/output/functions
+          if grep -R --include='*.html' -l '/src/main.js' .vercel/output/static 2>/dev/null; then
+            echo 'ERROR: Legacy index.html found inside Vercel output; it will white-screen the React app.'
+            exit 1
+          fi
 
