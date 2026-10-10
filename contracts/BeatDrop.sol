@@ -203,7 +203,7 @@ contract BeatDrop {
         uint8 count;
         uint8 first;
         for (uint8 lane = 0; lane < 4; ++lane) {
-            if (room.eligibleMask & (uint8(1) << lane) != 0) {
+            if ((room.eligibleMask & (uint8(1) << lane)) != 0) {
                 if (count == 0) first = lane;
                 ++count;
             }
@@ -212,7 +212,7 @@ contract BeatDrop {
         uint256 remainder = msg.value % count;
         room.totalTipped += msg.value;
         for (uint8 lane = 0; lane < 4; ++lane) {
-            if (room.eligibleMask & (uint8(1) << lane) == 0) continue;
+            if ((room.eligibleMask & (uint8(1) << lane)) == 0) continue;
             uint256 amount = equalAmount + (lane == first ? remainder : 0);
             address recipient = room.seats[lane];
             claimable[roomId][recipient] += amount;
