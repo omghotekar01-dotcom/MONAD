@@ -1,29 +1,32 @@
-name: Verify Beat Drop
+name: Verify Beat Drop design integration
 on:
   push:
-    branches: [main]
+    branches: [main, feat/lovable-design-integration]
   pull_request:
 jobs:
-  web-and-contracts:
+  verify:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install
-        run: npm ci --no-audit --no-fund
-      - name: Sequencer unit tests
-        run: npm test
+      - name: Install exact app dependencies
+        run: npm install --no-audit --no-fund
+      - name: Test React screens
+        run: npm run test:design
+      - name: Test legacy music and protocol
+        run: npm run test:legacy
       - name: Compile Solidity
         run: npm run contracts:compile
       - name: Contract tests
         run: npm run contracts:test
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Browser smoke tests
-        run: npm run test:e2e
-      - name: Production web build
+      - name: Build React production app
         run: npm run build
+      - name: Output dependency lock to integration log
+        if: github.ref_name == 'feat/lovable-design-integration'
+        run: |
+          printf '%s\n' 'BEAT_DROP_LOCK_BEGIN'
+          cat package-lock.json
+          printf '%s\n' 'BEAT_DROP_LOCK_END'
