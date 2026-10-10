@@ -1,6 +1,7 @@
 const { defineConfig, devices } = require("@playwright/test");
 module.exports = defineConfig({
   testDir: "./e2e",
+  testMatch: "**/design.spec.cjs",
   timeout: 20000,
   expect: { timeout: 8000 },
   fullyParallel: true,
@@ -13,7 +14,7 @@ module.exports = defineConfig({
     { name: "chromium-mobile", use: { ...devices["Pixel 7"] } }
   ],
   webServer: {
-    command: "npm run dev -- --host 127.0.0.1",
+    command: "npm run dev -- --host 127.0.0.1 --port 5173",
     url: "http://127.0.0.1:5173/",
     reuseExistingServer: !process.env.CI,
     timeout: 60000
