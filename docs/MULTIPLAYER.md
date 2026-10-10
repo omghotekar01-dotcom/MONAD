@@ -1,3 +1,14 @@
+> **Important UI migration update (October 2026):** The user-facing website
+> now runs the original Lovable light-theme **React + TanStack Start/Nitro**
+> interface. This guide originally described the former vanilla Vite version.
+> The smart-contract deployment, chain ID, testnet wallet and payout principles
+> below remain relevant; **UI button placements and the static `dist`
+> hosting instructions have changed**. Follow
+> [DESIGN_INTEGRATION.md](DESIGN_INTEGRATION.md) for current build and hosting.
+> Use `npm ci --legacy-peer-deps` and visit `/create`, `/join`, `/explore`,
+> `/room/:id/lobby`, `/room/:id/studio`, `/beat/:id`.
+> Contract-free local practice remains on `/studio`.
+
 # BEAT DROP — Multiplayer and Monad Testnet launch
 
 This guide covers **the real on-chain path**, not a fake local multiplayer demo.
@@ -20,7 +31,7 @@ In your existing MONAD folder in VS Code PowerShell:
 
 ```powershell
 git pull
-npm install
+npm ci --legacy-peer-deps
 npm test
 npm run contracts:compile
 npm run contracts:test
@@ -109,16 +120,14 @@ Without it, each batch requires an approval from the main wallet. To reduce prom
 
 ## 6. Invite friends from a different phone or computer
 
-A `http://localhost:5173/?room=...` URL only works on **your own machine**. For people outside your laptop, deploy the frontend to public HTTPS hosting (Vercel/Netlify/Cloudflare Pages).
-
-For Vercel:
-1. Import `omghotekar01-dotcom/MONAD` as a Vite project.
-2. Root directory `./`, install command `npm install`, build `npm run build`, output `dist`.
-3. Set environment variable `VITE_BEATDROP_ADDRESS` to the **SAME** deployed Monad Testnet contract address for every user.
-4. Deploy and open the public site. Check wallet connection, deep links, and that the `?room=ID` invite URL opens in another browser.
-5. Share the hosted URL/QR from this public site. Browser guests can listen; editors need injected wallets and TESTNET MON for transactions.
-
-If a browser wallet is unavailable on mobile, open the hosted URL in MetaMask's in-app browser or use a desktop extension. Never claim remote devices share sample-accurate audio timing; in-person demos should use host speakers to avoid echoes.
+`localhost` links work on your own computer only. Deploy the new **TanStack
+Start/Nitro server application** to an HTTPS hosting platform that supports its
+server runtime and deep links. The build output is `.output`, **not**
+the old `dist` static site. Set `VITE_BEATDROP_ADDRESS` at build time
+to the verified deployed Monad Testnet address. Test an independent
+browser opening `/room/:id` and `/beat/:id` directly before sending
+invites. For the exact updated deployment requirements see
+[DESIGN_INTEGRATION](DESIGN_INTEGRATION.md).
 
 ## 7. Verify before your hackathon demo
 
