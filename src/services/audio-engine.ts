@@ -9,6 +9,7 @@ class BrowserAudioEngine implements AudioEngine {
   private noise?: import('tone').NoiseSynth;
   private hat?: import('tone').MetalSynth;
   private melodic: Partial<Record<Instrument, import('tone').PolySynth>> = {};
+  private echoes: Partial<Record<Instrument, import('tone').FeedbackDelay>> = {};
   private gains: Partial<Record<Instrument, import('tone').Gain>> = {};
   private master?: import('tone').Gain;
   private compressor?: import('tone').Compressor;
@@ -36,7 +37,18 @@ class BrowserAudioEngine implements AudioEngine {
     this.drums=new T.MembraneSynth({pitchDecay:.04,octaves:5,envelope:{attack:.001,decay:.3,sustain:0,release:.1},volume:-3}).connect(drumGain);
     this.noise=new T.NoiseSynth({noise:{type:'white'},envelope:{attack:.001,decay:.12,sustain:0,release:.02},volume:-13}).connect(drumGain);
     this.hat=new T.MetalSynth({envelope:{attack:.001,decay:.045,release:.02},harmonicity:5.1,resonance:3000,modulationIndex:32,volume:-17}).connect(drumGain);
-    for(const i of ['bass','synth','pluck'] as const){ const gain=this.gains[i];if(!gain)continue;this.melodic[i]=new T.PolySynth(T.Synth,{oscillator:{type:i==='bass'?'triangle':i==='synth'?'sine':'triangle'},envelope:{attack:i==='synth'?.025:.003,decay:.15,sustain:i==='pluck'?0:.15,release:.15},volume:i==='bass'?-5:i==='synth'?-8:-9}).connect(gain); }
+    for(const i of ['bass','synth','pluck'] as const){
+      const gain=this.gains[i];if(!gain)continue;
+      // A restrained echo makes the original melody feel less like isolated
+      // click tones. Bass stays dry and centered to preserve low-end clarity.
+      const destination=i==='bass'?gain:(this.echoes[i]=new T.FeedbackDelay('8n',.16).connect(gain));
+      if(i!=='bass'&&this.echoes[i])this.echoes[i].wet.value=i==='synth'?.13:.2;
+      this.melodic[i]=new T.PolySynth(T.Synth,{
+        oscillator:{type:i==='bass'?'triangle':i==='synth'?'triangle':'triangle'},
+        envelope:{attack:i==='synth'?.025:.003,decay:.15,sustain:i==='pluck'?0:.15,release:.15},
+        volume:i==='bass'?-5:i==='synth'?-8:-9
+      }).connect(destination);
+    }
     T.getTransport().bpm.value=MUSIC.bpm;
   }
   private hit(instrument: Instrument,note:number,time?:number) {
