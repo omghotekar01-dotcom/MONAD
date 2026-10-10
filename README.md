@@ -96,6 +96,38 @@ transaction reliability, or on-chain tips.
 
 **Start the real blockchain activation:** [ACTIVATE_MONAD.md](docs/ACTIVATE_MONAD.md).
 
+## Live Monad dashboard, custom Lo-fi creation, Vercel hosting
+
+- **/chain** → independently verifiable read-only Monad Testnet status:
+  contract `0x9568d1f7871f46E75F555D66f68fF248de6d37fD`,
+  chain ID 10143, latest block, total on-chain rooms, newest room ownership,
+  accepted note patterns and real `NoteSet` transaction hashes.
+  The RPC activity feed polls every 15 seconds and is explicitly
+  **recent-block only**; no fabricated sample activity.
+- **/studio** → **New blank Lo-fi · 84 BPM**, all four musical lanes
+  start empty. Place your own notes; freely adjust solo tempo 65–160 BPM,
+  play, save a local Beat Card, or click **Publish my song on Monad**.
+- Publishing a custom song first saves a local draft and opens the REAL
+  room creator. One wallet can then own all four instrument seats,
+  start the 90-second chain round, and click **Publish my draft to Monad**.
+  This creates genuine signed transactions for changed notes only.
+- **Contract limitation:** The currently deployed Solidity room uses
+  **fixed 120 BPM**. An 84 BPM Lo-fi local draft's four musical patterns
+  can be published, but the 84 BPM setting itself cannot be encoded in
+  this contract without deploying an upgraded contract. The user is warned.
+- Browser-saved Beat Cards are **not on-chain** and cannot receive real
+  testnet tips. The old confusing local `Tip the crew` button now
+  explicitly invites a real on-chain jam.
+- Vercel: the code includes `vercel.json`, an explicit Nitro/Vercel
+  output preset and `npm run build:vercel`, verified by CI.
+  Connect/import the GitHub repo to Vercel with these **PUBLIC**
+  build environment values: `VITE_BEATDROP_ADDRESS` set to the deployed
+  address, `VITE_MONAD_RPC_URL=https://testnet-rpc.monad.xyz`,
+  and `NITRO_PRESET=vercel`.
+  Never paste a wallet key or seed phrase in Vercel variables.
+
+**Deployment walkthrough:** [VERCEL_DEPLOY.md](docs/VERCEL_DEPLOY.md).
+
 ## One-time contract deployment directly from VS Code (no Remix)
 
 A safe deployment workflow is built into this repository. A dedicated
