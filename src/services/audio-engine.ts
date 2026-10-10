@@ -1,8 +1,9 @@
 import { MUSIC, instruments, pitches, type Pattern, type Instrument } from '@/lib/beat-drop';
 type ToneModule = typeof import('tone');
-export interface AudioEngine { unlock(): Promise<void>; trigger(instrument: Instrument, note: number): void; play(pattern:()=>Pattern, onStep:(step:number)=>void): Promise<void>; stop(): void; volume(value:number):void; channel(instrument:Instrument,value:number):void; waveform():Float32Array }
+export interface AudioEngine { unlock(): Promise<void>; trigger(instrument: Instrument, note: number): void; play(pattern:()=>Pattern, onStep:(step:number)=>void): Promise<void>; stop(): void; volume(value:number):void; tempo(bpm:number):void; channel(instrument:Instrument,value:number):void; waveform():Float32Array }
 class BrowserAudioEngine implements AudioEngine {
   private tone?: ToneModule;
+  private bpm=MUSIC.bpm;
   private loading: Promise<void> | undefined;
   private loop: import('tone').Loop | undefined;
   private drums?: import('tone').MembraneSynth;
@@ -49,7 +50,7 @@ class BrowserAudioEngine implements AudioEngine {
         volume:i==='bass'?-5:i==='synth'?-8:-9
       }).connect(destination);
     }
-    T.getTransport().bpm.value=MUSIC.bpm;
+    T.getTransport().bpm.value=this.bpm;
   }
   private hit(instrument: Instrument,note:number,time?:number) {
     if(!this.tone)return;
@@ -64,6 +65,10 @@ class BrowserAudioEngine implements AudioEngine {
     T.getTransport().start();
   }
   stop(){this.loop?.dispose();this.loop=undefined;this.tone?.getTransport().stop();this.tone?.getTransport().cancel();}
+  tempo(bpm:number){
+    this.bpm=Math.max(65,Math.min(160,Math.round(bpm)));
+    if(this.tone)this.tone.getTransport().bpm.rampTo(this.bpm,.08);
+  }
   volume(value:number){
     // 0 stays completely silent; the 0..1 slider controls boosted pre-limiter gain.
     // Clamp programmatic input; the limiter handles simultaneous transient peaks.
