@@ -70,6 +70,32 @@ GitHub Actions runs the same test/check/build sequence in a known environment.
 Passing automated tests does not prove real cross-device timing, mobile wallet
 transaction reliability, or on-chain tips.
 
+## Upgrade 7 — louder signature song, real transaction explorer, solo chain rehearsal
+
+- Original **Midnight on Monad** four-instrument signature composition
+  (`src/lib/demo-song.ts`), 16 steps at 120 BPM; 45 repetitions fill a
+  90-second round. Load it directly from the Solo Studio guide.
+- Upgraded Tone.js output with approximately **2.5x pre-limiter slider gain**,
+  boosted instrument voices, gentle synth/pluck echo, compression and
+  a -1 dB peak limiter. Actual loudness depends on device/speakers;
+  start with comfortable OS/headphone volume.
+- One-click **Rehearse 4 players alone** creates a clearly local four-seat
+  simulation with the original song. No wallet or chain transaction claimed.
+- For **real testnet rehearsal**, a room host can assign all four seats
+  to **one MetaMask wallet**, then publish the signed demo song as up to
+  four on-chain instrument transactions during the 90-second active round.
+- Rooms, live Studio and finalized Beat Cards have a **Load transactions**
+  explorer panel. It reads **real `eth_getLogs` results**, groups
+  accepted `NoteSet` events by transaction, and links each real hash to
+  MonadVision. The recent-block window is limited, not a full history index.
+- Read-only CLI `npm run chain:check` confirms the configured RPC is
+  chain ID **10143** and the deployed contract has the expected interface.
+- No contract address or testnet room hash has been deployed/proven in this
+  repo yet. Contract creation still requires the user's testnet wallet
+  confirmation; no wallet private keys belong in source or chat.
+
+**Start the real blockchain activation:** [ACTIVATE_MONAD.md](docs/ACTIVATE_MONAD.md).
+
 ## Monad Testnet
 
 - Chain ID **10143**.
