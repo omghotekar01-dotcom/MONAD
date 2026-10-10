@@ -62,7 +62,8 @@ export function getErrorMessage(error){return readableError(error);}
 export function walletAddress(){return account;}
 export function sessionAddress(){return session?.account.address || null;}
 export function sessionActive(roomId) {
-  return Boolean(session && session.roomId===String(roomId) && session.expiresAt > Math.floor(Date.now()/1000));
+  return Boolean(session && account && session.owner.toLowerCase()===account.toLowerCase() &&
+    session.roomId===String(roomId) && session.expiresAt > Math.floor(Date.now()/1000));
 }
 export function explorerTx(hash){return EXPLORER+"/tx/"+hash;}
 export function explorerAddress(addr){return EXPLORER+"/address/"+addr;}
@@ -122,6 +123,13 @@ export async function ensureWalletNetwork(){
 async function checkedWriter() {
   if(!activeWallet || !account)throw new Error("Connect your wallet before making changes.");
   await ensureWalletNetwork();
+  // Account changes can race the accountsChanged callback. Never let a
+  // previously connected wallet sign or receive credit under another account.
+  const actual=await eip1193().request({method:"eth_accounts"});
+  if(!actual?.[0] || actual[0].toLowerCase()!==account.toLowerCase()){
+    activeWallet=null;account=null;clearSession();
+    throw new Error("MetaMask account changed. Reconnect the current wallet before submitting a transaction.");
+  }
   await verifyRpc();
   return activeWallet;
 }
@@ -272,32 +280,67 @@ export async function claimRoom(roomId,onHash){return send("claim",[BigInt(roomI
 export function clearSession(){session=null;}
 export async function authorizeSession(roomId,onHash){
   if(!account)throw new Error("Connect your main wallet first.");
+  await checkedWriter();
+  if(session){
+    const balance=await readSessionGas();
+    if(balance>0n)throw new Error("The previous browser key still holds test MON. Reclaim its unused gas before creating another session; reloading would lose that key.");
+    throw new Error("A temporary browser key already exists. Revoke and clear it before authorizing another.");
+  }
+  const owner=account;
   const key=privateKeyToAccount(generatePrivateKey());
   const expiresAt=Math.floor(Date.now()/1000)+300;
   const {hash}=await send("authorizeSession",[BigInt(roomId),key.address,BigInt(expiresAt)],{onHash});
-  session={roomId:String(roomId),account:key,expiresAt};
+  session={roomId:String(roomId),account:key,owner,expiresAt};
   return {address:key.address,expiresAt,hash};
 }
 export async function revokeSession(roomId,onHash){
   if(!session || session.roomId!==String(roomId))return;
   const address=session.account.address;
   const result=await send("revokeSession",[BigInt(roomId),address],{onHash});
-  clearSession();
+  const balance=await readSessionGas();
+  if(balance===0n)clearSession();
+  else session.expiresAt=0; // preserve gas key in memory for withdrawal
   return result;
 }
 export async function readSessionGas(){
   return session ? publicClient.getBalance({address:session.account.address}):0n;
 }
 export async function fundSession(amount,onHash) {
-  if(!session)throw new Error("Authorize a browser session first.");
+  if(!session || !sessionActive(session.roomId))throw new Error("Authorize a live browser session first.");
   const wallet=await checkedWriter();
   const value=parseEther(amount.trim());
-  if(value<=0n)throw new Error("Top-up must be greater than zero.");
+  if(value<=0n || value>parseEther("0.02"))throw new Error("Session top-up must be greater than 0 and no more than 0.02 test MON.");
   const hash=await wallet.sendTransaction({to:session.account.address,value,account,chain:TESTNET});
   onHash?.(hash);
   const receipt=await publicClient.waitForTransactionReceipt({hash,timeout:60000});
   if(receipt.status!=="success")throw new Error("Session top-up failed.");
   return {hash,receipt};
+}
+// Return UNUSED test MON from a volatile browser session key to its original
+// MAIN wallet before closing the tab. All signing stays in the browser.
+export async function reclaimSessionGas(onHash){
+  if(!session)throw new Error("No recoverable browser session key exists in this tab.");
+  const wallet=await checkedWriter();
+  if(!account || account.toLowerCase()!==session.owner.toLowerCase())
+    throw new Error("Reconnect the original owning MetaMask account first.");
+  const remaining=await publicClient.getBalance({address:session.account.address});
+  if(remaining===0n){clearSession();return {hash:null,amount:0n};}
+  const signer=createWalletClient({account:session.account,chain:TESTNET,transport:http(RPC,{timeout:12000})});
+  const gasPrice=await publicClient.getGasPrice();
+  // 21,000 gas is the standard EOA transfer; estimate with current fees and
+  // reserve an extra 20% so small spikes don't strand the sweep.
+  const estimated=await publicClient.estimateGas({account:session.account.address,to:session.owner,value:0n});
+  const feeBudget=estimated*gasPrice*12n/10n;
+  if(remaining<=feeBudget)throw new Error("Browser session balance is below the estimated transfer fee; no safe reclaim transaction can be sent.");
+  const amount=remaining-feeBudget;
+  const hash=await signer.sendTransaction({account:session.account,to:session.owner,value:amount,chain:TESTNET,gas:estimated,gasPrice});
+  onHash?.(hash);
+  const receipt=await publicClient.waitForTransactionReceipt({hash,confirmations:1,timeout:60000});
+  if(receipt.status!=="success")throw new Error("Browser session gas reclaim reverted.");
+  const stillThere=await publicClient.getBalance({address:session.account.address});
+  // Keep the secret available until the owner explicitly discards it; tiny
+  // transfer dust may remain after fee calculation.
+  return {hash,amount,remaining:stillThere};
 }
 export async function submitBatch(roomId,instrument,steps,values,owner,onHash,preferSession=false){
   await verifyRpc();
@@ -307,6 +350,12 @@ export async function submitBatch(roomId,instrument,steps,values,owner,onHash,pr
     const sessionAccount=session.account;
     const gasBalance=await publicClient.getBalance({address:sessionAccount.address});
     if(gasBalance===0n)throw new Error("Your browser session has no testnet MON gas. Fund it or switch to main-wallet signing.");
+    if(!session.owner || session.owner.toLowerCase()!==owner.toLowerCase())
+      throw new Error("This temporary session belongs to a different main wallet.");
+    const meta=await readRoom(roomId);
+    if(meta.phase!=="Live"||meta.seats[instrument]?.toLowerCase()!==owner.toLowerCase()||
+       meta.chainTime>=meta.endsAt-3)
+      throw new Error("Session lane ownership or live deadline has changed. No note transaction was sent.");
     const {request}=await publicClient.simulateContract({
       address:CONTRACT_ADDRESS,abi:BEATDROP_ABI,functionName:"setNotes",args,account:sessionAccount.address
     });
