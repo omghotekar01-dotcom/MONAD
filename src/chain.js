@@ -1,7 +1,7 @@
 import {
   createPublicClient, createWalletClient, custom, http,
   parseAbi, parseEventLogs, decodeEventLog, encodePacked,
-  stringToHex, hexToString, parseEther, formatEther, isAddress
+  stringToHex, hexToString, parseEther, formatEther, isAddress, toHex
 } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { roomHref, decodePattern, ZERO_ADDRESS } from "./room-utils.js";
@@ -29,6 +29,10 @@ export const BEATDROP_ABI = parseAbi([
   "event NoteSet(uint256 indexed roomId,uint8 indexed instrument,uint8 step,uint8 value,address indexed owner,address operator)",
   "event RoomFinalized(uint256 indexed roomId,uint8 eligibleMask)",
   "event TipReceived(uint256 indexed roomId,address indexed from,uint256 amount)",
+  "event SessionAuthorized(uint256 indexed roomId,address indexed owner,address indexed key,uint64 expiresAt)",
+  "event SessionRevoked(uint256 indexed roomId,address indexed owner,address indexed key)",
+  "event TipAllocated(uint256 indexed roomId,address indexed owner,uint256 amount)",
+  "event Claimed(uint256 indexed roomId,address indexed owner,uint256 amount)",
   "function createRoom(bytes32 name) returns (uint256 roomId)",
   "function assignSeat(uint256 roomId,uint8 seat,address owner)",
   "function startRoom(uint256 roomId)",
@@ -153,6 +157,47 @@ export async function readRoom(roomId) {
 export async function nextRoomId(){
   await verifyRpc();
   return publicClient.readContract({address:CONTRACT_ADDRESS,abi:BEATDROP_ABI,functionName:"nextRoomId"});
+}
+/**
+ * Scan recent Monad logs for a room. This is NOT an exhaustive lifetime index.
+ * Every room event has roomId as its FIRST indexed topic, so a single indexed
+ * filter finds edits, seats, tips and claims without 10 RPC calls per chunk.
+ * 4096 recent blocks are split into RPC-safe 512-block requests.
+ */
+export async function readRoomEvents(roomId,lookback=4096){
+  await verifyRpc();
+  const room=BigInt(roomId);
+  if(room<=0n)throw new Error("Invalid room.");
+  const depth=Number.isInteger(lookback)?Math.min(8192,Math.max(256,lookback)):4096;
+  const latest=await publicClient.getBlockNumber();
+  const start=latest>BigInt(depth)?latest-BigInt(depth)+1n:0n;
+  const parts=[];
+  for(let from=start;from<=latest;from+=512n){
+    const to=from+511n>latest?latest:from+511n;
+    parts.push([from,to]);
+  }
+  const queries=await Promise.allSettled(parts.map(async ([fromBlock,toBlock])=>{
+    return publicClient.getLogs({address:CONTRACT_ADDRESS,topics:[null,toHex(room,{size:32})],fromBlock,toBlock});
+  }));
+  const rejected=queries.find(result=>result.status==="rejected");
+  if(rejected)throw new Error("Activity scan could not be completed from the public RPC. Try again or use the Monad explorer.");
+  const logs=queries.flatMap(result=>result.status==="fulfilled"?result.value:[]);
+  return {
+    fromBlock:start,toBlock:latest,windowBlocks:depth,
+    events:logs.map(log=>{
+      try{
+        const decoded=decodeEventLog({abi:BEATDROP_ABI,data:log.data,topics:log.topics,strict:false});
+        const args=decoded.args||{};
+        return {name:decoded.eventName,
+          hash:log.transactionHash,block:Number(log.blockNumber),
+          index:Number(log.logIndex),owner:args.owner||args.host||args.from||null,
+          operator:args.operator||null,instrument:args.instrument===undefined?null:Number(args.instrument),
+          step:args.step===undefined?null:Number(args.step),value:args.value===undefined?null:Number(args.value),
+          amount:args.amount===undefined?null:String(args.amount),
+          eligibleMask:args.eligibleMask===undefined?null:Number(args.eligibleMask)};
+      }catch{return null;}
+    }).filter(Boolean).sort((a,b)=>b.block-a.block||b.index-a.index)
+  };
 }
 export async function readClaim(roomId,owner){
   if(!owner || !CONTRACT_READY)return 0n;
