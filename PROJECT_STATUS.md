@@ -1,5 +1,5 @@
 # BEAT DROP — implementation status
-Updated: 2026-10-10
+Updated: 2026-10-10 (Upgrade 5)
 
 ## Purpose
 Four strangers. One beat. Everyone credited. Monad Testnet-only music
@@ -52,6 +52,42 @@ https://github.com/omghotekar01-dotcom/MONAD/actions/runs/38037762412
 - The run validated Upgrade 4 code at commit `f8e545947d5508f3f2ba809a4d239623bec48f39`.
 - Later README/docs updates should be checked separately; do not invent success.
 
+## Upgrade 5 — Smart Producer & Remix Studio: CODE AND CI PASSING
+
+- 4 style profiles: House, Lo-fi, Trap, Ambient; 3 selectable energy levels.
+- Per-instrument deterministic on-device arrangement engine returns three
+  explainable proposals with source-lane fingerprints and bounded diff sets.
+- Real audition playback and grid step highlights do NOT modify source notes,
+  on-chain credits or payout proportions.
+- User-triggered **Apply idea** performs only the explicit patch; undo works.
+- On live rooms, proposals can be approved only for the connected main-wallet
+  owner's assigned instrument while the round accepts writes. Submitted edits
+  are pending until contract acceptance.
+- **Draft 4-track loop** produces a complete drums/bass/synth/pluck local demo,
+  with audition, approval and single-step full-arrangement undo.
+- Four-track drafts cannot be committed in shared rooms; no unapproved
+  edits to another participant's instrument are attempted.
+- Entire engine runs locally with no backend, cloud API, or model cost.
+- This is **rule-based music generation, not a trained AI model**; no false ML
+  capability or automatic royalty claim.
+- UI and gameplay integrated with original Tone.js transport, styles, replay,
+  mute/solo and Beat Cards.
+- See `docs/PRODUCER.md`.
+
+### Verification for Upgrade 5
+
+Confirmed GitHub Actions:
+https://github.com/omghotekar01-dotcom/MONAD/actions/runs/38038533540
+- **27** Node unit/domain tests passed.
+- **13** Hardhat smart contract tests passed.
+- **16** desktop/mobile Chromium browser smoke tests passed.
+- Solidity compilation succeeded.
+- Vite production build succeeded.
+- This successful run corresponds to source commit
+  `3b7e30de20b35784456dc3b368bb39199a0bda07`.
+- Documentation-only commits after this result have separate workflows;
+  do not claim unobserved future browser or on-chain verification.
+
 ## External activation remains INCOMPLETE
 
 - No live Monad Testnet contract deployed or verified with an explorer.
@@ -86,6 +122,18 @@ If OneDrive or network package installation causes `ECONNRESET` or `EPERM`,
 consider moving the repo to a non-synced path before `npm ci`.
 No local setup was requested for Upgrade 4, so this verification remains
 deferred.
+
+## Working local demo when setup resumes
+
+```powershell
+cd "C:\\Users\\ASUS\\OneDrive\\Desktop\\MONAD\\MONAD"
+git pull --ff-only origin main
+npm ci
+npm run dev
+```
+
+Add or audition a full beat with Smart Producer; a wallet is not required
+for this local functionality. Setup is intentionally deferred per user request.
 
 ## Practical next acceptance sequence
 
