@@ -177,7 +177,12 @@ export async function readRoomEvents(roomId,lookback=4096){
     parts.push([from,to]);
   }
   const queries=await Promise.allSettled(parts.map(async ([fromBlock,toBlock])=>{
-    return publicClient.getLogs({address:CONTRACT_ADDRESS,topics:[null,toHex(room,{size:32})],fromBlock,toBlock});
+    // Raw eth_getLogs explicitly preserves our cross-event topics filter.
+    // Every BeatDrop room event has roomId as its first indexed argument.
+    return publicClient.request({method:"eth_getLogs",params:[{
+      address:CONTRACT_ADDRESS,topics:[null,toHex(room,{size:32})],
+      fromBlock:toHex(fromBlock),toBlock:toHex(toBlock)
+    }]});
   }));
   const rejected=queries.find(result=>result.status==="rejected");
   if(rejected)throw new Error("Activity scan could not be completed from the public RPC. Try again or use the Monad explorer.");
