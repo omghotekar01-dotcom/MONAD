@@ -10,7 +10,8 @@
     "test": "node --test tests/*.test.js",
     "contracts:compile": "hardhat --config hardhat.config.cjs compile",
     "contracts:test": "hardhat --config hardhat.config.cjs test",
-    "contracts:deploy:testnet": "hardhat --config hardhat.config.cjs run scripts/deploy.cjs --network monadTestnet"
+    "contracts:deploy:testnet": "hardhat --config hardhat.config.cjs run scripts/deploy.cjs --network monadTestnet",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "tone": "^15.1.22",
@@ -21,6 +22,7 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "hardhat": "^2.22.18",
-    "dotenv": "^16.6.1"
+    "dotenv": "^16.6.1",
+    "@playwright/test": "^1.56.0"
   }
 }
