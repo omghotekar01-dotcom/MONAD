@@ -18,7 +18,7 @@ test('studio has playable controls, 16-step sequencer and keyboard',async({page}
  await expect(page.getByRole('button',{name:'Play beat'}).first()).toBeVisible();
  await expect(page.locator('.step-cell')).toHaveCount(64);
  await expect(page.getByRole('button',{name:/Play Kick/})).toBeVisible();
- await page.getByRole('button',{name:/synth/i}).first().click();
+ await page.locator('button.instrument-synth').first().click();
  await expect(page.getByRole('button',{name:/Play C3/})).toBeVisible();
 });
 test('all routed screens render without an uncaught page error',async({page})=>{
