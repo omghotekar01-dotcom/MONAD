@@ -148,6 +148,7 @@ export function mountRooms({onPattern,onStatus,onRoomChange}) {
           <button id="room-copy" type="button" class="subtle-btn">↗ Copy invite</button>
           <button id="room-show-qr" type="button" class="subtle-btn">▦ Show QR</button>
         </div>
+        ${["localhost","127.0.0.1"].includes(location.hostname)?'<p class="soft-note">Localhost links work only on your laptop. Host the site publicly to let friends join from other devices.</p>':""}
         <div id="room-qr" class="room-qr" hidden><p>Scan to open room #${room.id}</p><img id="room-qr-image" alt="Invite QR code"></div>
         <div class="room-seat-grid">${seats}</div>
         <div class="room-progress">
@@ -160,7 +161,7 @@ export function mountRooms({onPattern,onStatus,onRoomChange}) {
           <div class="room-action-row"><span class="soft-note">Host approval is required. Guests can copy their connected wallet address for seat assignment.</span>
           ${host?`<button id="room-start" class="action-btn" type="button">▶ Start 90-second jam</button>`:""}
           <button id="room-copy-wallet" class="subtle-btn" type="button" ${!wallet?"disabled":""}>Copy my address</button></div>`:""}
-        ${room.phase==="Live"?`
+        ${room.phase!=="Finalized"?`
           <div class="session-panel">
             <div><strong>Music permissions</strong><p>Only the owner of each instrument can record edits. Use main-wallet confirmations or an optional funded browser session key.</p></div>
             <div class="room-action-row">
@@ -173,12 +174,14 @@ export function mountRooms({onPattern,onStatus,onRoomChange}) {
             </div>
             <div class="soft-note" id="session-details">${sessionActive(roomId)?`Key: ${escapeHTML(shortAddress(sessionAddress()))} · Gas: ${formatMon(sessionBalance)} testnet MON · Resets on reload`:"Session signing is optional. Main wallet signing can require one popup per batch."}</div>
           </div>
+          ${room.phase==="Live" ? `
           <div class="room-action-row">
             <span id="room-pending" class="soft-note">0 queued · 0 in flight · 0 failed</span>
             <button id="room-flush" type="button" class="subtle-btn">Send pending edits</button>
             ${failed.size?`<button id="room-retry" type="button" class="subtle-btn">Retry failed</button>`:""}
             <button id="room-finalize" type="button" class="action-btn" ${nowSec()<room.endsAt?"disabled":""}>Finalize after deadline</button>
           </div>
+          ` : ""}
           `:""}
         ${room.phase==="Finalized"?`
           <div class="final-panel">
@@ -211,8 +214,8 @@ export function mountRooms({onPattern,onStatus,onRoomChange}) {
       await refresh();
     },false));
     root.querySelector("#room-create")?.addEventListener("click",()=>void execute("Create jam",async()=>{
-      if(!wallet)wallet=await connectWallet();
       const name=root.querySelector("#new-room-name").value;
+      if(!wallet)wallet=await connectWallet();
       const made=await createRoom(name,hash=>txMessage("Creating room","pending",hash));
       txMessage("Room created","confirmed",made.hash);
       route(made.roomId);
