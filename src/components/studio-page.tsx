@@ -1,7 +1,7 @@
 import { NativeProducer } from './music/producer-native';
 import { StudioGettingStarted } from './music/studio-getting-started';
 import { saveChainDraft, draftStepCount } from '@/lib/chain-draft';
-import { isOnChainId } from '@/services/monad-bridge';
+import { isOnChainId, chainConfigured } from '@/services/monad-bridge';
 import { ChainStudio } from './chain-pages';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
@@ -44,7 +44,8 @@ function LocalStudioPage({roomId}:{roomId?:string}) {
   <section className="border-t border-border pt-3"><div className="flex items-center justify-between"><Button variant="ghost" size="sm" className="text-xs" onClick={()=>setMixer(!mixer)} aria-expanded={mixer}><SlidersHorizontal/>The mixer <ChevronDown className={mixer?'rotate-180':''}/></Button><div className="w-36"><Waveform/></div></div>{mixer&&<div className="grid grid-cols-2 sm:grid-cols-4 gap-5 pt-4">{instruments.map(i=><div className={`instrument-${i}`} key={i}><p className="capitalize text-xs font-semibold mb-3 instrument-color">{i}</p><input type="range" aria-label={`${i} volume`} min="0" max="1" step=".01" value={levels[i]} className="w-full accent-foreground" onChange={e=>setLevels({...levels,[i]:Number(e.target.value)})}/><div className="flex gap-2 mt-2"><Button variant="ghost" size="sm" className="text-[10px]" aria-pressed={levels[i]===0} onClick={()=>setLevels({...levels,[i]:levels[i]===0?.7:0})}>Mute</Button><Button variant="ghost" size="sm" className={`text-[10px] ${solo===i?'bg-accent':''}`} aria-pressed={solo===i} onClick={()=>setSolo(solo===i?null:i)}>Solo</Button></div></div>)}</div>}</section>
   {roomId&&room?.startedAt&&<div className="border-t border-border pt-5 flex flex-col sm:flex-row justify-between gap-4"><p className="text-xs text-muted-foreground">Local result only. No on-chain finalization or transaction.</p><Button onClick={()=>void finish()} disabled={finalizing}>{finalizing?'Saving your beat…':ended?'Save beat card':'Finish local round'} <ArrowRight/></Button></div>}
   {!roomId&&<div className="flex items-center justify-between border-t border-border pt-5 gap-4"><Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={()=>{if(window.confirm('Clear all four instrument lanes? You can undo this.'))m.replace(emptyPattern());}}>Clear all tracks</Button><div className="flex flex-wrap items-center gap-2">
-  <Button variant="outline" className="text-xs" disabled={draftStepCount(m.pattern)===0}
+  <Button variant="outline" className="text-xs" disabled={draftStepCount(m.pattern)===0||!chainConfigured}
+    title={chainConfigured?'Create a real jam using this song draft':'Configure your deployed Monad contract first'}
     onClick={()=>{try{saveChainDraft(m.title==='Untitled session'?'My first drop':m.title,m.tempo,m.pattern);toast.success('Your four-part draft is ready to publish through REAL wallet transactions.');void navigate({to:'/create'});}catch(e){toast.error(e instanceof Error?e.message:'Draft could not be saved.');}}}>
     Publish my song on Monad <ArrowRight/>
   </Button>
