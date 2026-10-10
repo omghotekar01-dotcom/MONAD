@@ -1,4 +1,72 @@
 # BEAT DROP
+
+## Hackathon quick launch — Monad Blitz Pune V3
+
+**Public website:** Not yet confirmed; replace this line with the working HTTPS production URL after publishing.
+**Public Monad Testnet contract:** Not yet confirmed; paste the actual deployed address after `npm run chain:check` passes.
+**Explorer:** https://testnet.monadvision.com
+**Network:** Monad Testnet (chain ID `10143`).
+**Source:** https://github.com/omghotekar01-dotcom/MONAD
+
+The live URL and contract address above must be replaced with VERIFIED values before claiming full hackathon eligibility. The localhost demo is not a public deployment.
+
+### Run locally (Node.js 22+)
+
+```bash
+git clone https://github.com/omghotekar01-dotcom/MONAD.git
+cd MONAD
+npm ci --legacy-peer-deps
+npm run dev
+```
+
+Solo Studio works without a wallet. For a full local check:
+
+```bash
+npm run test:design
+npm run test:legacy
+npm run contracts:test
+npm run build
+```
+
+### Deploy the contract (testnet ONLY)
+
+See [the step-by-step VS Code deploy guide](docs/VS_CODE_DEPLOY.md). The short path is:
+
+```bash
+npm run deployer:prepare
+# Send testnet MON to the PUBLIC deployer address printed by this command.
+npm run deployer:status
+npm run contracts:compile
+npm run contracts:deploy:testnet
+npm run chain:check
+```
+
+The deploy script stores the PUBLIC address in Git-ignored `.env.local`. **Do not share or commit a private key or seed phrase.** Deployment is not complete until the explorer confirms a real receipt, the checker passes, and the contract source is separately verified on the explorer.
+
+### Publish the website
+
+The current frontend is **TanStack Start with Nitro SSR**, not a static-only Vite app. Deploy this GitHub repository to Vercel using Node.js 22+ and the checked-in `vercel.json` and `vite.config.ts`. Set the project environment variables to your actual PUBLIC values:
+
+```dotenv
+VITE_BEATDROP_ADDRESS=0xYOUR_ACTUAL_TESTNET_CONTRACT
+VITE_MONAD_RPC_URL=https://testnet-rpc.monad.xyz
+```
+
+For Vercel, use `npm ci --legacy-peer-deps` for installation and `npm run build:vercel` as the build command if the automatic TanStack detection fails. Do not use `dist` as the static output directory: the app requires server rendering. Test the production root page, `/studio`, and a direct room deep link after deployment.
+
+Read [QUICK_DEPLOY.md](QUICK_DEPLOY.md) for exact submission evidence and troubleshooting.
+
+### Three-minute judge demonstration
+
+1. Speak the **public GitHub repo, real contract address, live URL, and network/deployment** out loud.
+2. Show Solo Studio playing the genuine 4-instrument loop.
+3. Connect a testnet wallet, create a real room, assign a seat and submit an actual on-chain action; display the transaction hash and explorer confirmation.
+4. Explain that finalized eligible instrument seats split *tips sent to the contract*, not external copyright royalties.
+
+Never present sample rooms or local rehearsal as real cross-device multiplayer.
+
+---
+
 ### Four strangers. One beat. Everyone credited.
 
 A playful four-instrument music room on **Monad Testnet**.
