@@ -29,3 +29,7 @@
 @media(max-width:850px){.beat-card{grid-template-columns:1fr}.beat-cover-art{max-height:390px}.beat-cover-label{padding:14px 18px}.beat-information{padding:22px 19px}.room-beat-art .beat-cover{min-height:0}}
 @media(max-width:430px){.beat-information{padding:18px 12px}.beat-stems{gap:6px}.beat-stem{padding:9px}.stem-head{flex-direction:column;align-items:flex-start;gap:4px}.beat-cover-art{max-height:320px}.beat-play-actions button{padding:9px 11px}.beat-counts strong{font-size:20px}}
 @media(prefers-reduced-motion:reduce){.beat-card *, .beat-card *:before{transition:none!important;animation:none!important}}
+
+.beat-replay-progress{height:5px;background:#2b333e;border:1px solid #414b5a;border-radius:6px;overflow:hidden;position:relative;margin-top:-4px}
+.beat-replay-progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#f28f7c,#b6a0ff,#73d3df,#f2bd78);border-radius:5px;transition:width .1s linear}
+@media(prefers-reduced-motion:reduce){.beat-replay-progress span{transition:none}}
