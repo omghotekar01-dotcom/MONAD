@@ -1,3 +1,8 @@
+> **Recommended shortcut:** You can deploy entirely from VS Code
+> using Hardhat, with **no Remix and no MetaMask private-key export**.
+> Follow [VS_CODE_DEPLOY.md](VS_CODE_DEPLOY.md).
+> The Remix route below is an optional alternative.
+
 # Activate BEAT DROP on Monad Testnet — one-person end-to-end rehearsal
 
 **Security boundary:** The code is ready for a real contract. This repository
