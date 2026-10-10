@@ -13,6 +13,7 @@ test('Lovable home uses original Beat Drop artwork, clean navigation and light t
 });
 test('studio has playable controls, 16-step sequencer and keyboard',async({page})=>{
  await page.goto('/studio');
+ await page.waitForFunction(()=>document.documentElement.dataset.beatDropHydrated==='true');
  await expect(page.getByRole('heading',{name:/Solo studio/})).toBeVisible();
  await expect(page.getByRole('button',{name:'Arm recording'})).toBeVisible();
  await expect(page.getByRole('button',{name:'Play beat'}).first()).toBeVisible();
