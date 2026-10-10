@@ -215,6 +215,29 @@ describe("BeatDrop (Monad Testnet contract)", function () {
     expect((await beat.getRoom(id)).totalClaimed).to.equal(9n);
   });
 
+  it("completes a full one-wallet four-instrument Monad demo with provable 100% claim", async () => {
+    const id=await create();
+    for(let lane=0;lane<4;lane++)await join(id,lane,alice);
+    await start(id);
+    await note(alice,id,0,[0,4,8,12],[1,3,1,9],alice.address);
+    await note(alice,id,1,[0,6,10],[1,5,4],alice.address);
+    await note(alice,id,2,[0,2,4,6],[6,8,9,8],alice.address);
+    await note(alice,id,3,[3,7,11],[10,8,12],alice.address);
+    const grid=await beat.getPattern(id);
+    expect(grid[0][4]).to.equal(3n);
+    expect(grid[1][6]).to.equal(5n);
+    expect(grid[2][4]).to.equal(9n);
+    expect(grid[3][11]).to.equal(12n);
+    await finalize(id);
+    expect((await beat.getRoom(id)).eligibleMask).to.equal(15n);
+    await beat.connect(outsider).tip(id,{value:101n});
+    expect(await beat.claimable(id,alice.address)).to.equal(101n);
+    expect(await beat.claimable(id,host.address)).to.equal(0n);
+    await beat.connect(alice).claim(id);
+    expect(await beat.claimable(id,alice.address)).to.equal(0n);
+    expect((await beat.getRoom(id)).totalClaimed).to.equal(101n);
+  });
+
   it("cannot receive direct transfers outside the tip flow", async () => {
     await expect(host.sendTransaction({to:await beat.getAddress(),value:1n}))
       .to.be.revertedWithCustomError(beat,"DirectTransferDisabled");
