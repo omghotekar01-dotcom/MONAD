@@ -242,3 +242,25 @@
 @media (max-width:767px) { .app-sidebar{width:100%;height:64px;inset:0 0 auto;padding:0 18px;flex-direction:row;align-items:center;justify-content:space-between;border-right:0;border-bottom:1px solid var(--border);} .sidebar-desktop{display:none!important;} .brand{font-size:18px;} .app-main{margin-left:0;padding-top:64px;} .topbar{height:70px;padding:0 20px;} .page-content{padding:10px 20px 30px;} .bottom-player{left:0;height:76px;padding:0 16px;gap:8px;} .player-extra{display:none!important;} .hero-banner{min-height:310px;} .hero-content{padding:30px 24px;max-width:300px;} .hero-content h1{font-size:42px;} .hero-banner img{object-position:42% 55%;opacity:.52;} .hero-tag{display:none;} .page-title{font-size:30px;} .step-grid{gap:3px;} .step-cell{height:30px;} .performance-key{min-height:85px;} .studio-surface{padding:16px!important;} }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;} }
 @media (max-width:767px) { .hero-banner img {width:100%;} .performance-key {padding-left:3px;padding-right:3px;} .sequencer-inner { min-width:585px; } }
+
+
+/* Beat Drop interaction craft: consistent focus feedback and iPhone safe areas.
+   Keep the Lovable palette, typography and original spatial layout intact. */
+:root { color-scheme:light; }
+:focus-visible { outline:2px solid var(--mint-foreground); outline-offset:3px; }
+:where(button,a,input,select,textarea):focus-visible { outline:2px solid var(--mint-foreground); outline-offset:3px; }
+::selection { background:var(--mint); color:var(--foreground); }
+@supports (padding:max(0px)) {
+  @media(max-width:767px) {
+    .app-sidebar { height:calc(64px + env(safe-area-inset-top,0px)); padding-top:env(safe-area-inset-top,0px); }
+    .app-main { padding-top:calc(64px + env(safe-area-inset-top,0px));padding-bottom:calc(108px + env(safe-area-inset-bottom,0px)); }
+    .bottom-player { height:calc(76px + env(safe-area-inset-bottom,0px)); padding-bottom:env(safe-area-inset-bottom,0px); }
+  }
+}
+@media(prefers-contrast:more) {
+  .field,.studio-surface,.room-card { border-color:color-mix(in oklch,var(--foreground) 48%,var(--card)); }
+  .pill,.eyebrow { color:var(--foreground); }
+}
+@media(prefers-reduced-transparency:reduce) {
+ .bottom-player {backdrop-filter:none;background:var(--card);}
+}
