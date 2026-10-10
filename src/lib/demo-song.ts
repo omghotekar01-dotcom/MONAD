@@ -13,8 +13,8 @@ export const SIGNATURE_SONG = Object.freeze({
   durationSeconds:90,
   repeats:45,
   instruments:['Drums: four-on-the-floor with snare, hats and clap',
-    'Bass: C minor-pentatonic pulse',
-    'Synth: rising C–E♭–G motif',
+    'Bass: C major-pentatonic pulse',
+    'Synth: rising C–E–G motif',
     'Pluck: a complementary offbeat answering phrase']
 });
 export function signaturePattern():Pattern{
