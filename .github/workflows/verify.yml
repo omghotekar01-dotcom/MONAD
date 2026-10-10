@@ -37,3 +37,9 @@ jobs:
         run: npm run test:e2e
       - name: Build React production app
         run: npm run build
+      - name: Verify Vercel Functions output
+        run: |
+          npm run build:vercel
+          test -f .vercel/output/config.json
+          test -d .vercel/output/functions
+
