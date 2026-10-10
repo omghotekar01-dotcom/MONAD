@@ -4,8 +4,10 @@ on:
     branches: [main]
   pull_request:
 jobs:
-  web:
+  web-and-contracts:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -13,7 +15,11 @@ jobs:
           node-version: 22
       - name: Install
         run: npm install --no-audit --no-fund
-      - name: Domain tests
+      - name: Sequencer unit tests
         run: npm test
-      - name: Production build
+      - name: Compile Solidity
+        run: npm run contracts:compile
+      - name: Contract tests
+        run: npm run contracts:test
+      - name: Production web build
         run: npm run build
