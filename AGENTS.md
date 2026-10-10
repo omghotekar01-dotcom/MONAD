@@ -12,3 +12,10 @@
 
 - Contract protocol: `docs/CONTRACTS.md`. Use `npm run contracts:compile` and `npm run contracts:test`; deploy ONLY to Monad Testnet with a separate local test-wallet signer.
 - Root `type=module` requires explicit `--config hardhat.config.cjs` in npm contract scripts; do not rename config to `.js` without adapting to ESM.
+
+- Frontend multiplayer code: `src/room-controller.js`, `src/chain.js`, `src/room-utils.js`; no faux room state when the contract address is unconfigured.
+- Browser-only `VITE_BEATDROP_ADDRESS` is public and must point to a verified TESTNET contract; never embed a private key in Vite `VITE_*` env.
+- Session keys are held only in memory, scoped to one room, need separately funded TESTNET gas; warn that unused gas can be stranded on reload.
+- `npm ci` installs committed lockfile, `npm run test:e2e` runs browser smoke tests. Keep desktop/mobile layout and original studio working.
+- Live web + multiwallet behavior is NOT verified until actual testnet deployment and real transactions are witnessed.
+- Guide: `docs/MULTIPLAYER.md`.
