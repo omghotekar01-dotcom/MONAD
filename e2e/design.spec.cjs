@@ -151,3 +151,19 @@ test('pressing Play actually starts and stops the browser music transport',async
  await page.getByRole('button',{name:'Stop beat'}).first().click();
  await expect(page.getByRole('button',{name:'Play beat'}).first()).toBeVisible();
 });
+
+test('letter notes work right after clicking instrument selector without breaking typing',async({page})=>{
+ await page.goto('/studio');
+ await page.waitForFunction(()=>document.documentElement.dataset.beatDropHydrated==='true');
+ const synth=page.locator('button.instrument-synth').first();
+ await synth.click();
+ await expect(synth).toHaveAttribute('aria-pressed','true');
+ await page.keyboard.down('a');
+ await expect(page.getByRole('button',{name:'Play C3'})).toHaveClass(/down/);
+ await page.keyboard.up('a');
+ await expect(page.locator('#sequencer-pitch')).toHaveValue('1');
+ const select=page.locator('#sequencer-pitch');
+ await select.focus();
+ await page.keyboard.press('d');
+ await expect(page.getByRole('button',{name:'Play E3'})).not.toHaveClass(/down/);
+});
