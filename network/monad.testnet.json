@@ -1,0 +1,8 @@
+{
+  "chainId": 10143,
+  "name": "Monad Testnet",
+  "rpcUrl": "https://testnet-rpc.monad.xyz",
+  "currency": "MON",
+  "explorerUrl": "https://testnet.monadvision.com",
+  "faucetUrl": "https://faucet.monad.xyz"
+}
