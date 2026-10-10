@@ -32,7 +32,7 @@ export function MonadActivity({roomId}:{roomId:string}){
    {data&&<div className="mt-5">
      <div className="flex flex-wrap items-center justify-between gap-3 border-y border-border py-3 text-[11px] text-muted-foreground">
        <span>{txs.length} event groups · recent scan from block {data.fromBlock.toString()} through {data.toBlock.toString()}</span>
-       <a href={explorerBase+'/address/'+import.meta.env.VITE_BEATDROP_ADDRESS} target="_blank" rel="noreferrer" className="inline-flex gap-1 items-center underline">Full contract explorer <ExternalLink className="size-3"/></a>
+       <a href={explorerBase+'/address/'+import.meta.env['VITE_BEATDROP_ADDRESS']} target="_blank" rel="noreferrer" className="inline-flex gap-1 items-center underline">Full contract explorer <ExternalLink className="size-3"/></a>
      </div>
      {txs.length===0?<p className="text-xs text-muted-foreground py-7">No events for this room in the most recent {data.windowBlocks} blocks. Older transactions may exist—use the contract explorer for historical activity.</p>:
        <div className="divide-y divide-border">{txs.map((tx,i)=><div className="py-4 flex items-start justify-between gap-4" key={tx.hash+'|'+tx.name+'|'+i}>
