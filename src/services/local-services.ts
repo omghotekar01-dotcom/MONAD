@@ -13,8 +13,23 @@ export const roomService: RoomService = {
   create(name,vibe,visibility) { const room:Room={id:`BD-${crypto.randomUUID().slice(0,6).toUpperCase()}`,name,vibe,visibility,status:'Lobby',host:'You',seats:instruments.map(instrument=>({instrument,owner:null})),pattern:emptyPattern()}; this.save(room); return room; },
 };
 export const beatService: BeatService = { list:()=>[...demoBeats,...read<Beat>('beat-drop-beats')], get(id){return this.list().find(b=>b.id===id);}, save(beat){write('beat-drop-beats',beat);} };
-export const walletService: WalletService = { async connect(){ throw new Error('Wallet integration is not connected in this frontend preview. No wallet request was sent.'); } };
-export const contractService: ContractService = { async tip(){ throw new Error('Connect the existing Monad contract to send tips. No funds have moved.'); }, async finalize(){throw new Error('On-chain finalization requires the existing contract.');} };
+export const walletService: WalletService = { async connect(){
+  const {connectMainWallet}=await import('./monad-bridge');
+  const address=await connectMainWallet();
+  return {address,chainId:10143};
+} };
+export const contractService: ContractService = {
+  async tip(beatId,amount){
+    const {tipChainRoom,isOnChainId}=await import('./monad-bridge');
+    if(!isOnChainId(beatId))throw new Error('Sample and local-only Beat Cards cannot receive real tips.');
+    const tx=await tipChainRoom(beatId,amount);return tx.hash;
+  },
+  async finalize(room){
+    const {finalizeChainRoom,isOnChainId}=await import('./monad-bridge');
+    if(!isOnChainId(room.id))throw new Error('Local preview sessions cannot finalize on-chain.');
+    const tx=await finalizeChainRoom(room.id);return tx.hash;
+  }
+};
 export interface ProducerSuggestion { title: string; instrument: Instrument; description: string; notes: number[] }
 export interface AIProducerService { suggest(instrument: Instrument, pattern: Pattern, action: string): ProducerSuggestion }
 export const producerService: AIProducerService = { suggest(instrument,pattern,action){ const notes=[...pattern[instrument]]; if(action==='Simplify')notes.forEach((_,i)=>{if(i%2===1)notes[i]=0;}); else notes.forEach((n,i)=>{if(i%4===2)notes[i]=instrument==='drums'?(n|4):[1,5,4,6][Math.floor(i/4)]??1;}); return {title:action==='Simplify'?'Leave a little space':'Give it a little lift',instrument,description:`${action==='Simplify'?'Remove alternate notes from':'Add off-beat accents to'} your ${instrument} lane.`,notes}; } };
