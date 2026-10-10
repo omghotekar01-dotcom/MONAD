@@ -46,7 +46,7 @@ export function mountRooms({onPattern,onStatus,onRoomChange}) {
   };
   const latestHash=(hash)=>txMessage("Awaiting confirmation","pending",hash);
   function frameSignature() {
-    return JSON.stringify([roomId?.toString(),room?.phase,room?.seats,wallet?.toLowerCase(),preferSession,sessionAddress(),room?.eligibleMask,CONTRACT_READY]);
+    return JSON.stringify([roomId?.toString(),room?.phase,room?.seats,wallet?.toLowerCase(),preferSession,sessionAddress(),sessionActive(roomId),room?.eligibleMask,CONTRACT_READY]);
   }
   function route(id,kind="room") {
     const next=id==null?location.pathname:(kind==="beat"?beatHref(id):roomHref(id));
