@@ -12,7 +12,7 @@ import { GENRES, ENERGIES, generateSuggestions, suggestionIsCurrent, generateFul
 type Proposal={id:string;title:string;rationale:string;instrument:Instrument;pattern:Record<Instrument,number[][]>;changes:Array<{step:number;before:number[];after:number[]}>};
 type FullProposal={id:string;title:string;pattern:Record<Instrument,number[][]>;changes:Array<{instrument:Instrument;step:number}>};
 const genreOptions=['house','lofi','trap','ambient'];
-export function NativeProducer({allowed,shared=false}:{allowed:(instrument:Instrument)=>boolean;shared?:boolean}){
+export function NativeProducer({allowed,shared=false,onApprove}:{allowed:(instrument:Instrument)=>boolean;shared?:boolean;onApprove?:(instrument:Instrument,updates:Array<{step:number;value:number}>,draft:Pattern)=>boolean}){
  const m=useMusic();
  const [style,setStyle]=useState('house'),[energy,setEnergy]=useState(2),[ideas,setIdeas]=useState<Proposal[]>([]),[full,setFull]=useState<FullProposal|null>(null);
  const [notice,setNotice]=useState(''),[audition,setAudition]=useState('');
@@ -42,7 +42,16 @@ export function NativeProducer({allowed,shared=false}:{allowed:(instrument:Instr
    if(!allowed(proposal.instrument)){toast.error('This instrument is not available to edit.');return;}
    if(!suggestionIsCurrent(source(),proposal)){toast.error('The loop changed. Generate fresh suggestions.');reset();return;}
    if(timer.current)clearTimeout(timer.current);audioEngine.stop();setAudition('');
-   m.replace(patternFromChain(proposal.pattern));setIdeas([]);setNotice('Idea applied. Use Undo to restore your earlier loop.');toast.success('Instrument idea applied.');
+   const converted=patternFromChain(proposal.pattern);
+   if(shared){
+     if(!onApprove){toast.error('Shared-room approval is not connected. No edits were submitted.');return;}
+     const changed=proposal.changes.map(change=>({step:change.step,value:converted[proposal.instrument][change.step]??0}));
+     if(!onApprove(proposal.instrument,changed,converted))return;
+     setNotice('Approved changes queued. Only accepted Monad transactions earn contributor credit.');
+   }else{
+     m.replace(converted);setNotice('Idea applied. Use Undo to restore your earlier loop.');
+   }
+   setIdeas([]);toast.success(shared?'Changes queued for testnet confirmation':'Instrument idea applied.');
  };
  const approveFull=()=>{if(!full||shared)return;
    if(!fullBeatIsCurrent(source(),full)){toast.error('The loop changed. Generate a new draft.');reset();return;}
