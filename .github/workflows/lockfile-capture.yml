@@ -1,0 +1,22 @@
+name: Capture npm lockfile
+on:
+  push:
+    paths:
+      - .github/workflows/lockfile-capture.yml
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Resolve exact versions
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Emit lockfile to logs
+        run: |
+          printf '%s\n' 'BEATDROP_NPM_LOCK_BEGIN_2026'
+          cat package-lock.json
+          printf '%s\n' 'BEATDROP_NPM_LOCK_END_2026'
