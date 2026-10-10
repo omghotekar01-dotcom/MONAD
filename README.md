@@ -62,6 +62,31 @@ The browser tests cover two Chromium viewport types; MIDI/audio fidelity,
 live-wallet authorizations and physical phones require separate manual checks.
 The current verification status is maintained in [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
+## Upgrade 5 — on-device Smart Producer & Remix Studio
+
+A working producer is built into the music studio, available immediately
+without a wallet, testnet deployment or cloud API subscription:
+
+- Select a single instrument, style (House / Lo-fi / Trap / Ambient)
+  and energy (Sparse / Balanced / Energetic).
+- Generate three deterministic, pattern-aware arrangements.
+- Inspect the changed step count and visual diff; **Audition** any idea
+  without mutating the original loop.
+- Explicitly click **Apply idea** to approve changes. Undo is available.
+- **Draft 4-track loop** produces a complete local arrangement with all four
+  instrument voices. Preview it and apply it with one Undo checkpoint.
+- In live shared rooms, only the assigned owner may submit a suggestion
+  for their own instrument, using the existing on-chain confirmation path.
+  The full four-track action stays local-only to protect other contributors.
+
+The implementation is an **explainable, deterministic rule-based engine**,
+not a trained generative AI model. There are no API keys, external requests,
+auto-submitted chain edits or hidden ownership changes. Suggestions are never
+credited until their human-assigned wallet owner explicitly approves edits
+that the chain accepts.
+
+See [Producer guide, tested behaviour and demo](docs/PRODUCER.md).
+
 ## Real Monad Testnet multiplayer
 
 Network: **Monad Testnet**, chain ID **10143**; native currency testnet MON;
