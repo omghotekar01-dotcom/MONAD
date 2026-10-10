@@ -164,6 +164,18 @@ transaction reliability, or on-chain tips.
 
 **Start the real blockchain activation:** [ACTIVATE_MONAD.md](docs/ACTIVATE_MONAD.md).
 
+## Web3 transaction hardening — Monad Testnet
+
+- Main and delegated signers validate the **currently selected MetaMask account** before sending notes or other wallet transactions.
+- Note batches are validated as a unique 1–16 step edit of a single instrument, consistent with the Solidity limits.
+- Browser session keys are **temporary and high-risk**. Main-wallet signing is safer; delegated keys now have a visible reclaim-unused-gas action and warning that keys are lost on tab closure.
+- Tip and claim now require explicit confirmation and display **real transaction hashes**. Exact-wei input validation rejects confusing amounts, with a UI-only 10 test MON safety cap per tip.
+- Solidity tests cover four instruments, finalized attribution, tip distribution, unauthorized signers and claim security.
+- Honest on-chain disclosure: 4×16 notes, finalized wallet seats and native testnet MON tips are verifiable; audio files, solo song BPM, cover images, NFTs, copyrighted ownership and commercial royalties are **not** recorded by this contract.
+
+**Read the scoped threat model, proof checklist and remaining limitations:**
+[WEB3_SECURITY_REVIEW.md](docs/WEB3_SECURITY_REVIEW.md).
+
 ## Live Monad dashboard, custom Lo-fi creation, Vercel hosting
 
 - **/chain** → independently verifiable read-only Monad Testnet status:
