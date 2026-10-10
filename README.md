@@ -45,12 +45,37 @@ npm run dev
 The existing local music controls remain usable without a wallet. Hardhat
 tests operate on an in-memory development blockchain and use **no testnet funds**.
 
-Next integration: MetaMask / wallet connection, live room links, explicit
-user-approved authorization of short-lived editing keys, transaction status,
-confirmed shared pattern sync, and final Beat Card replay/tipping.
+## Upgrade 3 — multiplayer frontend
 
-**Do not deploy to Monad mainnet. Do not share any wallet seed phrase,
-private key, or session key in chat.** For real testnet deployment, use a
-separate test-only wallet; verify the RPC chain ID is 10143. 
+**Implemented in the web app (requires a deployed Monad TESTNET contract address):**
+
+- MetaMask/injected-wallet connect and switch to chain ID 10143.
+- Create / Join Jam, read-only listeners, QR invitations, host-approved seats.
+- Shared pattern retrieval, edit permission checks, batching and tx progress.
+- Optional scoped session key and gas funding in Lobby or Live.
+- 90-second live rounds, final Beat Card replay, testnet MON tips and claims.
+- Poll + reconcile authoritative on-chain state, apply remote changes at audio loop boundaries.
+
+**Activation:** The contract has not been deployed and the public site has not
+been hosted. Without `VITE_BEATDROP_ADDRESS`, the app intentionally disables real
+room creation rather than imitating a blockchain connection.
+
+Read **[MULTIPLAYER SETUP](docs/MULTIPLAYER.md)** for MetaMask-only contract deployment
+through Remix, environment setup, creating an actual room, and sending
+public HTTPS invitations to different devices.
+
+```powershell
+git pull
+npm install
+npm test
+npm run contracts:test
+npm run test:e2e
+npm run build
+npm run dev
+```
+
+Run `npx playwright install chromium` once if the browser-test runner requests it.
+Browser tests cover offline mode and responsive grid behaviours but do **not**
+replace live two-wallet/real testnet acceptance.
 
 Status, including what was actually tested: [PROJECT_STATUS.md](PROJECT_STATUS.md).
