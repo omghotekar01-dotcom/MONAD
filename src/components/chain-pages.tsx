@@ -1,3 +1,4 @@
+import { NativeProducer } from './music/producer-native';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, ArrowRight, Check, Copy, Wallet, Play, Pause, RotateCcw, Circle, ExternalLink, RefreshCw, Radio, Download, Music2 } from 'lucide-react';
@@ -200,6 +201,19 @@ export function ChainStudio({roomId}:{roomId:string}){
     catch(e){setActivity(chainError(e));toast.error(chainError(e));}
     finally{setBusy(false);}
   };
+  const approveProducer=(inst:Instrument,updates:Array<{step:number;value:number}>,draft:Pattern)=>{
+    if(!room||!canPlay(room,account,inst)){toast.error('Your current wallet cannot edit this instrument.');return false;}
+    if(flushing.current||pending.current.size){toast.error('Finish or confirm pending edits before applying a new Producer idea.');return false;}
+    if(!updates.length)return false;
+    // All proposals modify exactly ONE authorized lane. No other owner's
+    // music may be sent, credited, or overwritten by a producer patch.
+    music.current.sync({...music.current.pattern,[inst]:[...draft[inst]]});
+    pending.current.set(inst,new Map(updates.map(x=>[x.step,x.value])));
+    if(timer.current)clearTimeout(timer.current);
+    timer.current=setTimeout(()=>void flushRef.current(),1300);
+    setActivity('Producer patch queued for your instrument only. Await on-chain confirmation.');
+    return true;
+  };
   return <div className="space-y-6">
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div><p className="eyebrow mb-3">MONAD TESTNET / LIVE MUSIC</p><h1 className="page-title">{room.name}</h1>
@@ -232,6 +246,10 @@ export function ChainStudio({roomId}:{roomId:string}){
         <span className="text-xs text-muted-foreground">{busy?'Waiting for confirmation':pending.current.size?'Edits queued':'Listening / ready'}</span>
       </div>
     </section>
+    {room.phase==='Live'&&eligible&&<section className="studio-surface p-5 sm:p-7">
+      <p className="eyebrow mb-4">SMART PRODUCER / YOUR ASSIGNED LANE</p>
+      <NativeProducer allowed={userCanEdit} shared onApprove={approveProducer}/>
+    </section>}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
       <section className="studio-surface p-5"><p className="eyebrow mb-3">COLLABORATORS / WALLET SEATS</p>
         {instruments.map((inst,idx)=><div className="flex items-center justify-between border-b border-border py-3 last:border-none" key={inst}><span className={`text-xs capitalize instrument-${inst}`}>{inst}</span><OwnerChip address={room.seats[idx]??null}/></div>)}
