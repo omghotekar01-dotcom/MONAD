@@ -5,7 +5,7 @@ export type Pattern = Record<Instrument, number[]>;
 export type RoomStatus = 'Lobby' | 'Live' | 'Finalized';
 export interface InstrumentSeat { instrument: Instrument; owner: string | null }
 export interface Room { id: string; name: string; vibe: string; visibility: 'public' | 'private'; status: RoomStatus; seats: InstrumentSeat[]; host: string; startedAt?: number; pattern: Pattern }
-export interface Beat { id: string; title: string; vibe: string; creator: string; cover: number; pattern: Pattern; roomId?: string; createdAt?: number }
+export interface Beat { id: string; title: string; vibe: string; creator: string; cover: number; pattern: Pattern; tempo?: number; roomId?: string; createdAt?: number }
 export interface TipAllocation { instrument: Instrument; owner: string; amount: bigint }
 export const keys = ['a','s','d','f','g','h','j','k','q','w','e','r','t','y','u','i'];
 export const pitches = ['C3','D3','E3','G3','A3','C4','D4','E4','G4','A4','C5','D5','E5','G5','A5','C6'];
