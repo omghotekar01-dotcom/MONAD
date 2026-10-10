@@ -1,6 +1,8 @@
 import * as Tone from "tone";
 import {INSTRUMENTS,LABELS,COLORS,STEPS,BPM,NOTES,KEY_LOWER,KEY_UPPER,DRUM_NAMES,createPattern,withNote,keyToNote,hasNotes,contributions,serialize,deserialize,quantizedStep} from "./sequencer.js";
 import { mountRooms } from "./room-controller.js";
+import { beatCardHTML, saveBeatArtwork } from "./beat-card-view.js";
+import "./beat-card.css";
 import "./style.css";
 
 const el=document.querySelector("#app");
@@ -9,7 +11,39 @@ let beatUrl="",message="Practice is local — no wallet needed.",notesPlayed=0;
 let sampler=null,loop=null,master=null;
 const sound={};
 let playbackStartedAt=0;
-let roomController=null, pendingRemote=null;
+let roomController=null, pendingRemote=null, previewVisible=false;
+const mutedInstruments=new Set();
+let soloInstrument=null;
+const shouldPlayStem=inst=>soloInstrument ? inst===soloInstrument : !mutedInstruments.has(inst);
+function getMix(){return {playing,muted:[...mutedInstruments],solo:soloInstrument};}
+function syncCardButtons(){
+  document.querySelectorAll("[data-card-play]").forEach(b=>b.textContent=playing?"❚❚ Pause replay":"▶ Play replay");
+  document.querySelectorAll("[data-card-mute]").forEach(b=>{
+    const value=mutedInstruments.has(b.dataset.cardMute);
+    b.setAttribute("aria-pressed",String(value));b.classList.toggle("selected",value);
+  });
+  document.querySelectorAll("[data-card-solo]").forEach(b=>{
+    const value=soloInstrument===b.dataset.cardSolo;
+    b.setAttribute("aria-pressed",String(value));b.classList.toggle("selected",value);
+  });
+}
+function renderLocalCard(){
+  const anchor=document.querySelector("#local-card-anchor");
+  if(!anchor)return;
+  if(!previewVisible || !hasNotes(pattern) || roomController?.inRoom()){
+    anchor.hidden=true;anchor.innerHTML="";return;
+  }
+  anchor.hidden=false;
+  anchor.innerHTML=beatCardHTML({pattern,title:"My Beat Drop Loop",...getMix()});
+}
+function togglePreview(){
+  if(!hasNotes(pattern)){setMessage("Add at least one note before previewing.");return;}
+  if(roomController?.inRoom()){setMessage("Finish and finalize your shared room to open its Beat Card.");return;}
+  previewVisible=!previewVisible;
+  renderLocalCard();
+  document.querySelector("#preview-card").textContent=previewVisible?"✕ Close Beat Card":"◈ Preview Beat Card";
+  if(previewVisible)document.querySelector("#local-card-anchor").scrollIntoView({behavior:"smooth",block:"start"});
+}
 function setCell(instrument,step,cell){
  const out={...pattern,[instrument]:pattern[instrument].map(c=>[...c])};
  out[instrument][step]=[...cell];
@@ -44,7 +78,7 @@ function buildSound(){
   step=(step+1)%STEPS;
   if(pendingRemote){pattern=pendingRemote;pendingRemote=null;Tone.getDraw().schedule(()=>{renderGrid();renderStats();},time);}
   for(const inst of INSTRUMENTS){
-   for(const note of pattern[inst][step]) trigger(inst,note,time);
+   if(shouldPlayStem(inst))for(const note of pattern[inst][step]) trigger(inst,note,time);
   }
   Tone.getDraw().schedule(()=>refreshPlayback(step),time);
  },"16n").start(0);
@@ -72,6 +106,7 @@ async function togglePlay(){
  if(playing){Tone.getTransport().pause();playing=false;setMessage("Paused. Your loop is saved locally.");}
  else{Tone.getTransport().start();playing=true;setMessage(recording?"Recording into your local loop.":"Playing the local loop.");}
  renderControls();
+ syncCardButtons();
 }
 async function inputNote(note){
  if(!await unlock())return;
@@ -170,6 +205,9 @@ function renderStats(){
  document.querySelector("#edit-count").textContent=INSTRUMENTS.reduce((n,i)=>n+pattern[i].reduce((m,cell)=>m+cell.length,0),0).toString();
  document.querySelector("#active-seats").textContent=contributions(pattern).length+" / 4";
  document.querySelector("#save").disabled=!hasNotes(pattern);
+ const previewButton=document.querySelector("#preview-card");
+ if(previewButton)previewButton.disabled=!hasNotes(pattern)||Boolean(roomController?.inRoom());
+ if(previewVisible)renderLocalCard();
 }
 function renderControls(){
  document.querySelector("#play").textContent=playing?"❚❚ Pause":"▶ Play loop";
@@ -213,9 +251,10 @@ el.innerHTML=`
 <div class="grid-section"><div class="section-line"><span id="lane-label">DRUMS / STEP GRID</span><span>ONE BAR · 16 STEPS <b id="playhead">01 / 16</b></span></div><div class="step-grid" id="grid"></div><div class="beat-labels"><span>BEAT 01</span><span>BEAT 02</span><span>BEAT 03</span><span>BEAT 04</span></div>
 <div id="lane-overview" class="lanes"></div></div>
 <div class="play-section"><div class="section-line"><span>PLAY YOUR INSTRUMENT</span><span id="pad-hint">A S D F · drum hits</span></div><div class="pads" id="pads"></div><p class="keyboard-tip">Click or tap a pad to play and select a note for the step grid. <kbd>1–4</kbd> change instruments · <kbd>SPACE</kbd> arm recording · <kbd>Z</kbd> undo.</p></div>
-<div class="transport"><div class="transport-left"><button id="play" class="play-btn">▶ Play loop</button><button id="record" class="record-btn">○ Record</button><button id="undo">↶ Undo</button></div><div class="transport-right"><button id="save" disabled>↓ Save loop</button><label for="upload" class="upload-btn">↑ Open loop<input id="upload" type="file" accept=".json,application/json" hidden></label></div></div>
+<div class="transport"><div class="transport-left"><button id="play" class="play-btn">▶ Play loop</button><button id="record" class="record-btn">○ Record</button><button id="undo">↶ Undo</button></div><div class="transport-right"><button id="preview-card" disabled>◈ Preview Beat Card</button><button id="save" disabled>↓ Save loop</button><label for="upload" class="upload-btn">↑ Open loop<input id="upload" type="file" accept=".json,application/json" hidden></label></div></div>
 <div id="status" class="status" role="status" aria-live="polite">Practice is local — no wallet needed.</div>
 </section>
+<div id="local-card-anchor" class="local-card-section" hidden></div>
 <section class="info-strip"><div><span class="eyebrow">01 / LOCAL EDITS</span><strong id="edit-count">0</strong><small>Recorded notes</small></div><div><span class="eyebrow">02 / ACTIVE LANES</span><strong id="active-seats">0 / 4</strong><small>With at least one note</small></div><div><span class="eyebrow">03 / ON-CHAIN STATUS</span><strong id="network-status" class="not-live">Room controls above</strong><small>Only confirmed chain notes earn attribution</small></div></section>
 <footer><p>BEAT DROP / EXPERIMENTAL MUSIC SPACE</p><p>Local audio · No royalties or ownership claims · Built for Monad</p></footer>
 </main>`;
@@ -224,14 +263,49 @@ document.querySelector("#play").onclick=()=>void togglePlay();
 document.querySelector("#record").onclick=toggleRecord;
 document.querySelector("#undo").onclick=undo;
 document.querySelector("#save").onclick=downloadBeat;
+document.querySelector("#preview-card").onclick=togglePreview;
+document.addEventListener("click",event=>{
+ const control=event.target.closest("[data-card-play],[data-card-mute],[data-card-solo],[data-card-art],[data-card-share]");
+ if(!control)return;
+ if(control.hasAttribute("data-card-play")){void togglePlay();return;}
+ if(control.hasAttribute("data-card-mute")){
+  const inst=control.dataset.cardMute;
+  if(mutedInstruments.has(inst))mutedInstruments.delete(inst);else mutedInstruments.add(inst);
+  syncCardButtons();return;
+ }
+ if(control.hasAttribute("data-card-solo")){
+  const inst=control.dataset.cardSolo;
+  soloInstrument=soloInstrument===inst?null:inst;
+  syncCardButtons();return;
+ }
+ if(control.hasAttribute("data-card-art")){
+  const room=roomController?.currentRoom();
+  const finalized=room?.phase==="Finalized";
+  saveBeatArtwork(finalized?room.pattern:pattern,finalized?room.name:"my-loop");
+  setMessage("Pattern-derived SVG artwork saved locally.");return;
+ }
+ if(control.hasAttribute("data-card-share")){
+  const room=roomController?.currentRoom();
+  if(!room||room.phase!=="Finalized")return;
+  const url=new URL(location.href);
+  url.searchParams.delete("room");url.searchParams.set("beat",String(room.id));
+  const value=url.toString();
+  if(navigator.share){void navigator.share({title:"BEAT DROP · "+room.name,url:value}).catch(()=>{});
+  }else if(navigator.clipboard?.writeText){void navigator.clipboard.writeText(value).then(()=>setMessage("Beat Card link copied.")).catch(()=>setMessage("Share this link: "+value));}
+  else setMessage("Share this link: "+value);
+ }
+});
 document.querySelector("#upload").onchange=e=>{loadBeat(e.target.files?.[0]);e.target.value="";};
 renderGrid();renderPads();renderStats();renderControls();
 
 roomController=mountRooms({
  onPattern:setPatternFromChain,
+ getMix,
  onStatus:setMessage,
  onRoomChange:(active)=>{
    history=[];recording=false;renderControls();
+   previewVisible=false;document.querySelector("#preview-card").textContent="◈ Preview Beat Card";
+   renderLocalCard();renderStats();
    document.querySelector("#network-status").textContent=active?"Shared room":"Local practice";
    setMessage(active?"Loading chain-authoritative room state.":"Local practice. No wallet needed.");
  }
