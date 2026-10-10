@@ -2,7 +2,7 @@ import * as Tone from "tone";
 import {INSTRUMENTS,LABELS,COLORS,STEPS,BPM,NOTES,KEY_LOWER,KEY_UPPER,DRUM_NAMES,createPattern,withNote,keyToNote,hasNotes,contributions,serialize,deserialize,quantizedStep} from "./sequencer.js";
 import { mountRooms } from "./room-controller.js";
 import { mountProducer } from "./producer-panel.js";
-import { applySuggestion, suggestionIsCurrent } from "./producer.js";
+import { applySuggestion, suggestionIsCurrent, applyFullBeat, fullBeatIsCurrent } from "./producer.js";
 import { beatCardHTML, saveBeatArtwork } from "./beat-card-view.js";
 import "./beat-card.css";
 import "./style.css";
@@ -26,6 +26,15 @@ async function startProducerAudition(idea){
   recording=false;renderControls();renderGrid();
   if(!playing)await togglePlay();
   setMessage("Auditioning a proposed arrangement — no changes have been saved.");
+}
+function applyFullProducerIdea(draft){
+  if(roomController?.inRoom())throw new Error("Full arrangements are local-only; no other player's notes may be overwritten.");
+  if(!fullBeatIsCurrent(pattern,draft))throw new Error("The local loop has changed. Regenerate the full beat.");
+  history.push(pattern);
+  producerAudition=null;
+  pattern=applyFullBeat(pattern,draft);
+  renderGrid();renderStats();
+  return draft.changes.length;
 }
 function applyProducerIdea(idea){
   if(!suggestionIsCurrent(pattern,idea))throw new Error("The original loop changed; generate new ideas.");
@@ -201,7 +210,7 @@ function changeInstrument(i){
 }
 function renderGrid(){
  const shown=audiblePattern();
- const changed=new Set(producerAudition?.changes?.map(change=>change.step)??[]);
+ const changed=new Set(producerAudition?.changes?.filter(change=>!change.instrument||change.instrument===instrument).map(change=>change.step)??[]);
  const grid=document.querySelector("#grid");
  grid.innerHTML="";
  const max=instrument==="drums"?4:16;
@@ -355,7 +364,8 @@ producerPanel=mountProducer({
   canApply:inst=>!roomController?.inRoom()||roomController.canEdit(inst),
   onPreview:startProducerAudition,
   onStopPreview:stopProducerAudition,
-  onApply:applyProducerIdea
+  onApply:applyProducerIdea,
+  onApplyFull:applyFullProducerIdea
 });
 roomController=mountRooms({
  onPattern:setPatternFromChain,
