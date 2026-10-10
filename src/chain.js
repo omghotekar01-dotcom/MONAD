@@ -150,6 +150,10 @@ export async function readRoom(roomId) {
     chainTime:Number(block.timestamp),chainObservedAt:Date.now()
   };
 }
+export async function nextRoomId(){
+  await verifyRpc();
+  return publicClient.readContract({address:CONTRACT_ADDRESS,abi:BEATDROP_ABI,functionName:"nextRoomId"});
+}
 export async function readClaim(roomId,owner){
   if(!owner || !CONTRACT_READY)return 0n;
   return publicClient.readContract({address:CONTRACT_ADDRESS,abi:BEATDROP_ABI,functionName:"claimable",args:[BigInt(roomId),owner]});
