@@ -204,6 +204,45 @@ export async function readRoomEvents(roomId,lookback=4096){
     }).filter(Boolean).sort((a,b)=>b.block-a.block||b.index-a.index)
   };
 }
+/**
+ * Recent, READ-ONLY explorer feed for this BeatDrop deployment.
+ * Latest 1024 blocks by default, two parallel RPC-safe 512-block pages.
+ * Not a full history index. Never manufactures receipt hashes.
+ */
+export async function readRecentContractEvents(lookback=1024){
+  await verifyRpc();
+  const depth=Number.isInteger(lookback)?Math.min(4096,Math.max(256,lookback)):1024;
+  const [height,next]=await Promise.all([
+    publicClient.getBlockNumber(),
+    publicClient.readContract({address:CONTRACT_ADDRESS,abi:BEATDROP_ABI,functionName:"nextRoomId"})
+  ]);
+  const first=height>=BigInt(depth)?height-BigInt(depth)+1n:0n;
+  const slices=[];
+  for(let from=first;from<=height;from+=512n){
+    const to=from+511n>height?height:from+511n;
+    slices.push([from,to]);
+  }
+  const settled=await Promise.allSettled(slices.map(([fromBlock,toBlock])=>publicClient.request({
+    method:"eth_getLogs",params:[{address:CONTRACT_ADDRESS,fromBlock:toHex(fromBlock),toBlock:toHex(toBlock)}]
+  })));
+  const failed=settled.some(x=>x.status==="rejected");
+  const logs=settled.flatMap(x=>x.status==="fulfilled"?x.value:[]);
+  const events=logs.map(log=>{
+    try{
+      const decoded=decodeEventLog({abi:BEATDROP_ABI,data:log.data,topics:log.topics,strict:false});
+      const args=decoded.args||{};
+      return {name:decoded.eventName,roomId:args.roomId===undefined?null:String(args.roomId),
+        hash:log.transactionHash,block:Number(BigInt(log.blockNumber)),index:Number(BigInt(log.logIndex)),
+        owner:args.owner||args.host||args.from||null,operator:args.operator||null,
+        instrument:args.instrument===undefined?null:Number(args.instrument),
+        step:args.step===undefined?null:Number(args.step),value:args.value===undefined?null:Number(args.value),
+        amount:args.amount===undefined?null:String(args.amount)};
+    }catch{return null;}
+  }).filter(Boolean).sort((a,b)=>b.block-a.block||b.index-a.index).slice(0,150);
+  return {chainId:TESTNET.id,contract:CONTRACT_ADDRESS,latestBlock:height,
+    roomCount:next-1n,fromBlock:first,toBlock:height,scanComplete:!failed,
+    events};
+}
 export async function readClaim(roomId,owner){
   if(!owner || !CONTRACT_READY)return 0n;
   return publicClient.readContract({address:CONTRACT_ADDRESS,abi:BEATDROP_ABI,functionName:"claimable",args:[BigInt(roomId),owner]});
