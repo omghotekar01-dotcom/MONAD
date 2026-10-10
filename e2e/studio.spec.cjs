@@ -107,3 +107,25 @@ test("Producer uses selected instrument, energy and style while keeping preview 
   await expect(page.getByRole("region",{name:"Local Beat Card preview"})).toBeVisible();
   await expect(page.locator(".beat-credits")).toContainText("LOCAL PRACTICE / UNSIGNED");
 });
+
+test("one-click full-beat draft remains local until explicit approval and undoes as a unit", async ({page})=>{
+  const pageErrors=[];page.on("pageerror",e=>pageErrors.push(e.message));
+  await page.goto("/");
+  await page.getByRole("button",{name:/Open Producer/}).click();
+  const button=page.getByRole("button",{name:/Draft 4-track loop/});
+  await expect(button).toBeVisible();
+  await expect(button).toBeEnabled();
+  await button.click();
+  await expect(page.locator(".producer-full-lane")).toHaveCount(4);
+  await expect(page.locator("#edit-count")).toHaveText("0");
+  await page.getByRole("button",{name:/Audition full beat/}).click();
+  await expect(page.locator("#grid .step.suggested").first()).toBeVisible();
+  await expect(page.locator("#edit-count")).toHaveText("0");
+  await page.getByRole("button",{name:/Apply full beat/}).click();
+  await expect(page.locator("#active-seats")).toHaveText("4 / 4");
+  await expect(page.locator("#edit-count")).not.toHaveText("0");
+  await page.locator("#undo").click();
+  await expect(page.locator("#edit-count")).toHaveText("0");
+  await expect(page.locator("#active-seats")).toHaveText("0 / 4");
+  expect(pageErrors).toEqual([]);
+});
