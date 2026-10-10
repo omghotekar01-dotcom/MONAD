@@ -4,7 +4,7 @@ Updated: 2026-10-10
 
 ## Upgrade 6 — Source-accurate light UI / React design migration
 
-**Code pushed on design integration branch** before promoting to `main`.
+**Merged and fast-forwarded to `main`** from the verified design integration branch.
 
 - Imported all 97 Lovable frontend source files, original 3 artwork assets,
   original TanStack routes and Tailwind/React component system from the
@@ -28,6 +28,16 @@ Updated: 2026-10-10
 - React/TanStack dependency lockfile committed; CI installs via
   `npm ci --legacy-peer-deps` and runs design, type, music, Solidity,
   browser and production build checks.
+
+### Verified implementation CI
+
+Commit `e8b8d7fa911c13c18d6bab98c3ddc52aeb62370d` completed all
+checks on the integration branch:
+https://github.com/omghotekar01-dotcom/MONAD/actions/runs/38041227184
+
+The same commit was fast-forwarded to `main`; a new main-branch CI run
+was triggered. The status of that separate run must be checked before
+claiming a second successful run.
 
 **This does NOT establish that real multiwallet edits, live testnet
 disbursements, HTTPS cross-device invite links, or independent mobile audio
