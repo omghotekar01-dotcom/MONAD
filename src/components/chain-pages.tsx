@@ -2,6 +2,7 @@ import { NativeProducer } from './music/producer-native';
 import { MonadActivity } from './music/monad-activity';
 import { signaturePattern, SIGNATURE_SONG } from '@/lib/demo-song';
 import {readChainDraft,clearChainDraft,draftStepCount,type SongDraft} from '@/lib/chain-draft';
+import { parseSafeTestTip } from '@/lib/transaction-guards';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, ArrowRight, Check, Copy, Wallet, Play, Pause, RotateCcw, Circle, ExternalLink, RefreshCw, Radio, Download, Music2 } from 'lucide-react';
@@ -349,7 +350,7 @@ export function ChainStudio({roomId}:{roomId:string}){
 export function ChainBeat({beatId}:{beatId:string}){
   const {room,loading,error,refresh}=useChainRoom(beatId);
   const m=useMusic();const [account,setAccount]=useState<string|null>(null);
-  const [amount,setAmount]=useState('0.01'),[claimable,setClaimable]=useState<bigint>(0n),[pending,setPending]=useState(''),[activity,setActivity]=useState('');
+  const [amount,setAmount]=useState('0.01'),[claimable,setClaimable]=useState<bigint>(0n),[pending,setPending]=useState(''),[activity,setActivity]=useState(''),[lastHash,setLastHash]=useState('');
   const loaded=useRef('');
   useEffect(()=>{void refreshMainWallet().then(setAccount).catch(()=>{});
     return watchWallet(setAccount);},[]);
@@ -363,11 +364,26 @@ export function ChainBeat({beatId}:{beatId:string}){
   if(room.phase!=='Finalized')return <div className="py-16 text-center"><h1 className="page-title">This beat is still being made.</h1><p className="text-sm text-muted-foreground mt-4">It becomes a permanent Beat Card only after finalization on Monad.</p><Button asChild className="mt-6"><Link to="/room/$roomId" params={{roomId:beatId}}>Go to room</Link></Button></div>;
   const eligible=instruments.map((inst,idx)=>({inst,idx,owner:room.seats[idx]})).filter(x=>x.owner&&(room.eligibleMask&(1<<x.idx))!==0);
   const payout=eligible.length?100/eligible.length:0;
-  const transact=async(kind:string,fn:()=>Promise<unknown>)=>{if(pending)return;setPending(kind);setActivity('Waiting for wallet confirmation…');
-    try{await fn();setActivity(kind+' confirmed on Monad Testnet.');toast.success(kind+' confirmed');await refresh();
-      if(account)setClaimable(await claimableChainRoom(room.id,account));}
-    catch(e){setActivity(chainError(e));toast.error(chainError(e));}
+  const transact=async(kind:string,fn:(onHash:(hash:string)=>void)=>Promise<unknown>)=>{
+    if(pending)return;
+    setPending(kind);setLastHash('');setActivity('Waiting for MetaMask approval on Monad Testnet…');
+    try{
+      await fn(hash=>{setLastHash(hash);setActivity(kind+' pending on Monad · '+hash);});
+      setActivity(kind+' confirmed in a Monad Testnet transaction.');toast.success(kind+' confirmed');await refresh();
+      if(account)setClaimable(await claimableChainRoom(room.id,account));
+    }catch(e){setActivity(chainError(e));toast.error(chainError(e));}
     finally{setPending('');}
+  };
+  const handleTip=()=>{
+    if(!account){toast.error('Connect a Monad Testnet wallet before tipping.');return;}
+    try{parseSafeTestTip(amount);}catch(e){toast.error(e instanceof Error?e.message:'Invalid amount');return;}
+    if(!window.confirm('Send '+amount.trim()+' TESTNET MON to this finalized Beat Card? The contract immediately splits it equally among the '+eligible.length+' nonempty instrument seat(s). This does NOT buy ownership, an NFT, or commercial royalties. MetaMask will request final approval.'))return;
+    void transact('Tip',hash=>tipChainRoom(room.id,amount,hash));
+  };
+  const handleClaim=()=>{
+    if(!account||claimable===0n)return;
+    if(!window.confirm('Withdraw your claimable TESTNET MON to '+abbreviatedWallet(account)+'? A separate gas-paid transaction will be requested in MetaMask.'))return;
+    void transact('Claim',hash=>claimChainRoom(room.id,hash));
   };
   return <div className="max-w-6xl mx-auto">
     <Link to="/drops" className="text-xs text-muted-foreground inline-flex items-center gap-2 mb-7"><ArrowLeft className="size-3"/>Recent drops</Link>
@@ -394,11 +410,12 @@ export function ChainBeat({beatId}:{beatId:string}){
         <p className="text-xs text-muted-foreground mb-5">Your claimable balance: <strong>{formatTestMon(claimable)} test MON</strong></p>
         <div className="flex flex-wrap gap-2">
           <input aria-label="Tip amount in testnet MON" type="text" inputMode="decimal" className="field max-w-[140px]" value={amount} onChange={e=>setAmount(e.target.value)}/>
-          <Button disabled={!!pending||!eligible.length} onClick={()=>void transact('Tip',()=>tipChainRoom(room.id,amount))}><Wallet/>Send testnet MON tip</Button>
-          <Button variant="outline" disabled={!!pending||claimable===0n} onClick={()=>void transact('Claim',()=>claimChainRoom(room.id))}>Claim tips</Button>
+          <Button disabled={!!pending||!eligible.length||!account} onClick={handleTip}><Wallet/>Send testnet MON tip</Button>
+          <Button variant="outline" disabled={!!pending||claimable===0n||!account} onClick={handleClaim}>Claim tips</Button>
         </div>
         {!account&&<Button variant="ghost" className="mt-3" onClick={()=>void connectMainWallet().then(setAccount).catch(e=>toast.error(chainError(e)))}>Connect wallet to tip or claim</Button>}
         {activity&&<p role="status" className="mt-4 text-xs text-muted-foreground break-all">{activity}</p>}
+        {lastHash&&<a className="mt-3 inline-flex text-xs items-center gap-2 underline break-all" href={transactionExplorer(lastHash)} target="_blank" rel="noreferrer">Verify latest transaction on MonadVision <ExternalLink className="size-3.5"/></a>}
         <p className="text-[10px] text-muted-foreground mt-5">Testnet only. This card is not a minted NFT, copyright certificate or streaming-royalty distribution.</p>
       </div>
     </div>
