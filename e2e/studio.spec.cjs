@@ -65,3 +65,45 @@ test("local Beat Card artwork and mute/solo controls work without a wallet", asy
   await page.getByRole("button",{name:/Close Beat Card/}).click();
   await expect(card).toBeHidden();
 });
+
+
+test("Smart Producer auditions without changing actual note counts, then explicitly applies and undoes", async ({page}) => {
+  const errors=[];
+  page.on("pageerror",e=>errors.push(e.message));
+  await page.goto("/");
+  await expect(page.locator("#edit-count")).toHaveText("0");
+  await page.getByRole("button",{name:/Open Producer/}).click();
+  await expect(page.getByRole("region",{name:"Smart Producer"})).toBeVisible();
+  await page.getByRole("button",{name:/Generate 3 ideas/}).click();
+  await expect(page.locator(".producer-idea")).toHaveCount(3);
+  const first=page.locator(".producer-idea").first();
+  await expect(first.getByText(/STEPS? CHANGED/)).toBeVisible();
+  await first.getByRole("button",{name:/Audition/}).click();
+  await expect(page.locator("#edit-count")).toHaveText("0");
+  await expect(page.locator(".producer-idea.listening")).toHaveCount(1);
+  await expect(page.locator("#grid .step.suggested").first()).toBeVisible();
+  await first.getByRole("button",{name:/Apply idea/}).click();
+  await expect(page.locator("#edit-count")).not.toHaveText("0");
+  await expect(page.locator(".producer-idea")).toHaveCount(0);
+  await page.locator("#undo").click();
+  await expect(page.locator("#edit-count")).toHaveText("0");
+  expect(errors).toEqual([]);
+});
+test("Producer uses selected instrument, energy and style while keeping preview unsigned", async ({page})=>{
+  await page.goto("/");
+  await page.locator('[data-instrument="synth"]').click();
+  await page.getByRole("button",{name:/Open Producer/}).click();
+  await expect(page.locator(".producer-target strong")).toHaveText("SYNTH");
+  await page.locator("#producer-style").selectOption("ambient");
+  await page.locator("#producer-energy").fill("3");
+  await page.getByRole("button",{name:/Generate 3 ideas/}).click();
+  await expect(page.locator(".producer-idea")).toHaveCount(3);
+  await expect(page.locator(".producer-disclaimer")).toContainText("NOT A TRAINED AI MODEL");
+  await expect(page.locator(".producer-policy")).toContainText("No cloud model");
+  await page.locator(".producer-idea").nth(1).getByRole("button",{name:/Apply idea/}).click();
+  await expect(page.locator("#edit-count")).not.toHaveText("0");
+  await expect(page.locator("#lane-label")).toHaveText(/SYNTH/);
+  await page.getByRole("button",{name:/Preview Beat Card/}).click();
+  await expect(page.getByRole("region",{name:"Local Beat Card preview"})).toBeVisible();
+  await expect(page.locator(".beat-credits")).toContainText("LOCAL PRACTICE / UNSIGNED");
+});
