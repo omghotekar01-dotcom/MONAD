@@ -20,7 +20,8 @@
     "test:e2e": "playwright test e2e/design.spec.cjs",
     "chain:check": "node scripts/check-testnet.cjs",
     "deployer:prepare": "node scripts/prepare-deployer.cjs",
-    "deployer:status": "node scripts/deployer-status.cjs"
+    "deployer:status": "node scripts/deployer-status.cjs",
+    "build:vercel": "node scripts/build-vercel.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
