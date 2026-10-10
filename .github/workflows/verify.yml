@@ -21,5 +21,5 @@ jobs:
         run: npm run contracts:compile
       - name: Contract tests
         run: npm run contracts:test
-      - name: Production web build
+      - name: Install Chromium\n        run: npx playwright install --with-deps chromium\n      - name: Browser smoke tests\n        run: npm run test:e2e\n      - name: Production web build
         run: npm run build
