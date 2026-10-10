@@ -92,3 +92,37 @@ test('downloaded music arrangement JSON has all four lanes and validates round-t
  await expect(page.getByText('Loop imported.')).toBeVisible();
  await expect(page.getByText('Imported beat').first()).toBeVisible();
 });
+
+test('newcomer can follow clear Studio guide, build a beat, arm record and navigate to a jam',async({page})=>{
+  await page.goto('/studio');
+  await page.waitForFunction(()=>document.documentElement.dataset.beatDropHydrated==='true');
+  const guide=page.getByRole('region',{name:'Getting started with music'});
+  await expect(guide).toBeVisible();
+  await expect(guide.getByRole('heading',{name:/Make your first beat/})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Play beat'}).first()).toBeVisible();
+  await expect(page.getByRole('button',{name:'Arm recording'})).toBeVisible();
+  await guide.getByRole('button',{name:/Start empty beat/}).click();
+  await expect(page.locator('.step-cell.on')).toHaveCount(0);
+  await page.getByRole('button',{name:/drums step 1/}).first().click();
+  await expect(page.getByRole('button',{name:/drums step 1/}).first()).toHaveAttribute('aria-pressed','true');
+  await page.getByRole('button',{name:'Arm recording'}).click();
+  await expect(page.getByRole('button',{name:'Arm recording'})).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByText(/Ready to record. Press Play loop/)).toBeVisible();
+  await guide.getByRole('button',{name:/Hide getting started guide/}).click();
+  await expect(page.getByRole('button',{name:'Show quick guide'})).toBeVisible();
+  await page.getByRole('button',{name:'Show quick guide'}).click();
+  await expect(guide).toBeVisible();
+  await guide.getByRole('link',{name:/Create a jam/}).click();
+  await expect(page).toHaveURL(/\/create$/);
+});
+test('new Studio toolbar shows labelled play, stop and recording controls on desktop and mobile',async({page})=>{
+  await page.goto('/studio');
+  await page.waitForFunction(()=>document.documentElement.dataset.beatDropHydrated==='true');
+  await expect(page.getByRole('button',{name:'Play beat'}).first()).toBeVisible();
+  await expect(page.getByRole('button',{name:'Stop beat'}).first()).toBeVisible();
+  await expect(page.getByRole('button',{name:'Arm recording'}).first()).toBeVisible();
+  await expect(page.getByRole('button',{name:'Undo edit'}).first()).toBeVisible();
+  await expect(page.getByText(/Ready. Press Play loop to hear all four tracks together/)).toBeVisible();
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
+  expect(overflow).toBeLessThanOrEqual(2);
+});
