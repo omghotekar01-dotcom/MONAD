@@ -113,6 +113,10 @@ export function mountProducer({getPattern,getInstrument,isShared,canApply,onPrev
      style=e.target.value;resetIdeas();render();
    });
    root.querySelector("#producer-energy")?.addEventListener("input",e=>{
+     const label=root.querySelector(".producer-energy");
+     if(label)label.textContent=ENERGIES[Number(e.target.value)];
+   });
+   root.querySelector("#producer-energy")?.addEventListener("change",e=>{
      const next=Number(e.target.value);
      if(next===energy)return;
      energy=next;resetIdeas();render();
