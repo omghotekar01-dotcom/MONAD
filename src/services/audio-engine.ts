@@ -11,6 +11,8 @@ class BrowserAudioEngine implements AudioEngine {
   private melodic: Partial<Record<Instrument, import('tone').PolySynth>> = {};
   private gains: Partial<Record<Instrument, import('tone').Gain>> = {};
   private master?: import('tone').Gain;
+  private compressor?: import('tone').Compressor;
+  private limiter?: import('tone').Limiter;
   private analyser?: import('tone').Waveform;
   async unlock() {
     if (!this.loading) this.loading=this.initialize().catch(e=>{this.loading=undefined;throw e;});
@@ -19,13 +21,22 @@ class BrowserAudioEngine implements AudioEngine {
   }
   private async initialize() {
     const T=await import('tone'); this.tone=T;
-    this.master=new T.Gain(.65).toDestination(); this.analyser=new T.Waveform(128); this.master.connect(this.analyser);
-    for(const i of instruments)this.gains[i]=new T.Gain(.7).connect(this.master);
+    // Loudness upgrade: approximately 2.5–3x nominal gain before peak control.
+    // A compressor and -1 dB limiter prevent hard digital clipping when
+    // drums, bass and melodic notes hit simultaneously.
+    this.limiter=new T.Limiter(-1).toDestination();
+    this.compressor=new T.Compressor(-16,3);
+    this.compressor.attack.value=.006;
+    this.compressor.release.value=.18;
+    this.compressor.connect(this.limiter);
+    this.master=new T.Gain(1.9).connect(this.compressor);
+    this.analyser=new T.Waveform(128); this.limiter.connect(this.analyser);
+    for(const i of instruments)this.gains[i]=new T.Gain(.9).connect(this.master);
     const drumGain=this.gains.drums; if(!drumGain)return;
-    this.drums=new T.MembraneSynth({pitchDecay:.04,octaves:5,envelope:{attack:.001,decay:.3,sustain:0,release:.1},volume:-5}).connect(drumGain);
-    this.noise=new T.NoiseSynth({noise:{type:'white'},envelope:{attack:.001,decay:.12,sustain:0,release:.02},volume:-18}).connect(drumGain);
-    this.hat=new T.MetalSynth({envelope:{attack:.001,decay:.045,release:.02},harmonicity:5.1,resonance:3000,modulationIndex:32,volume:-25}).connect(drumGain);
-    for(const i of ['bass','synth','pluck'] as const){ const gain=this.gains[i];if(!gain)continue;this.melodic[i]=new T.PolySynth(T.Synth,{oscillator:{type:i==='bass'?'triangle':i==='synth'?'sine':'triangle'},envelope:{attack:i==='synth'?.025:.003,decay:.15,sustain:i==='pluck'?0:.15,release:.15},volume:i==='bass'?-8:-14}).connect(gain); }
+    this.drums=new T.MembraneSynth({pitchDecay:.04,octaves:5,envelope:{attack:.001,decay:.3,sustain:0,release:.1},volume:-3}).connect(drumGain);
+    this.noise=new T.NoiseSynth({noise:{type:'white'},envelope:{attack:.001,decay:.12,sustain:0,release:.02},volume:-13}).connect(drumGain);
+    this.hat=new T.MetalSynth({envelope:{attack:.001,decay:.045,release:.02},harmonicity:5.1,resonance:3000,modulationIndex:32,volume:-17}).connect(drumGain);
+    for(const i of ['bass','synth','pluck'] as const){ const gain=this.gains[i];if(!gain)continue;this.melodic[i]=new T.PolySynth(T.Synth,{oscillator:{type:i==='bass'?'triangle':i==='synth'?'sine':'triangle'},envelope:{attack:i==='synth'?.025:.003,decay:.15,sustain:i==='pluck'?0:.15,release:.15},volume:i==='bass'?-5:i==='synth'?-8:-9}).connect(gain); }
     T.getTransport().bpm.value=MUSIC.bpm;
   }
   private hit(instrument: Instrument,note:number,time?:number) {
@@ -41,8 +52,16 @@ class BrowserAudioEngine implements AudioEngine {
     T.getTransport().start();
   }
   stop(){this.loop?.dispose();this.loop=undefined;this.tone?.getTransport().stop();this.tone?.getTransport().cancel();}
-  volume(value:number){this.master?.gain.rampTo(value,.05);}
-  channel(instrument:Instrument,value:number){this.gains[instrument]?.gain.rampTo(value,.05);}
+  volume(value:number){
+    // 0 stays completely silent; the 0..1 slider controls boosted pre-limiter gain.
+    // Clamp programmatic input; the limiter handles simultaneous transient peaks.
+    const safe=Number.isFinite(value)?Math.max(0,Math.min(1,value)):0;
+    this.master?.gain.rampTo(safe*2.5,.06);
+  }
+  channel(instrument:Instrument,value:number){
+    const safe=Number.isFinite(value)?Math.max(0,Math.min(1,value)):0;
+    this.gains[instrument]?.gain.rampTo(safe,.05);
+  }
   waveform(){return this.analyser?.getValue()??new Float32Array(128);}
 }
 export const audioEngine: AudioEngine = new BrowserAudioEngine();
