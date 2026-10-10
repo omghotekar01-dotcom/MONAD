@@ -192,3 +192,30 @@ test('single visitor rehearses every instrument seat using local 4-player simula
  await page.getByRole('button',{name:'Finish local round'}).click();
  await expect(page).toHaveURL(/\/beat\/local-bd-/);
 });
+
+test('Live blockchain route has honest unconfigured status and works from navigation',async({page})=>{
+ await page.goto('/chain');
+ await page.waitForFunction(()=>document.documentElement.dataset.beatDropHydrated==='true');
+ await expect(page.getByRole('heading',{name:'The blockchain, live.'})).toBeVisible();
+ await expect(page.getByText('Blockchain not configured in this build.')).toBeVisible();
+ await expect(page.getByRole('link',{name:'Live blockchain'}).first()).toBeVisible();
+ await expect(page.getByText('RoomCreated', {exact:true})).toHaveCount(0);
+});
+test('blank Lo-fi Canvas starts with silent four-part grid and adjustable tempo',async({page})=>{
+ await page.goto('/studio');
+ await page.waitForFunction(()=>document.documentElement.dataset.beatDropHydrated==='true');
+ await page.getByRole('button',{name:/New blank Lo-fi/}).click();
+ await expect(page.getByRole('heading',{name:'Lo-fi Canvas'})).toBeVisible();
+ await expect(page.getByRole('slider',{name:'Solo tempo BPM'})).toHaveValue('84');
+ await expect(page.locator('.step-cell[aria-pressed="true"]')).toHaveCount(0);
+ await page.getByRole('button',{name:'drums step 1, rest'}).click();
+ await expect(page.getByRole('button',{name:'drums step 1, note 1'})).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('.step-cell[aria-pressed="true"]')).toHaveCount(1);
+ await page.getByRole('slider',{name:'Solo tempo BPM'}).fill('91');
+ await expect(page.getByRole('slider',{name:'Solo tempo BPM'})).toHaveValue('91');
+ await page.getByRole('button',{name:'Save my drop'}).click();
+ await expect(page).toHaveURL(/\/beat\/local-/);
+ await expect(page.getByText('Lo-fi · 91 BPM · 4/4')).toBeVisible();
+ await expect(page.getByText('This is a local song, not a recorded Monad contribution.')).toBeVisible();
+ await expect(page.getByRole('link',{name:/Create real on-chain jam/})).toBeVisible();
+});
