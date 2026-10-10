@@ -48,3 +48,20 @@
 @media(max-width:900px){.producer-setup{grid-template-columns:repeat(2,minmax(0,1fr))}.producer-cards{grid-template-columns:1fr}.producer-idea>p{min-height:0}.producer-minigrid{max-width:100%}.producer-cell{height:22px}}
 @media(max-width:600px){.producer-heading{padding:20px 15px;align-items:flex-start;flex-direction:column}.producer-body{padding:16px 12px}.producer-title-wrap{align-items:flex-start;gap:11px}.producer-orb{width:39px;min-width:39px;height:39px;font-size:22px}.producer-heading .producer-launch{width:100%}.producer-setup{grid-template-columns:1fr 1fr;gap:12px}.producer-target{grid-column:span 2}.producer-setup>.producer-launch{grid-column:span 2}.producer-idea{padding:12px}.producer-idea h4{font-size:14px}}
 @media(prefers-reduced-motion:reduce){.producer-shell *{transition:none!important}}
+
+.producer-full-action{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:17px;padding:12px 16px;background:#272b3b;border:1px solid #555177;border-radius:8px}
+.producer-full-action div{display:flex;flex-direction:column;gap:5px}
+.producer-full-action strong{font:700 13px 'Space Grotesk',sans-serif;color:#ebe4ff}
+.producer-full-action span{font-size:11px;color:#aeb9cb}
+.producer-full-action button{padding:11px 13px;border-radius:7px;border:1px solid #8477b5;color:#e3ddff;background:#39354f}
+.producer-full-action button:disabled{opacity:.38;cursor:not-allowed}
+.producer-full-card{border:1px solid #635d8d;background:#2b3043;border-radius:9px;margin-top:18px;padding:17px;display:flex;flex-direction:column;gap:14px}
+.producer-full-card h4{font:700 19px 'Space Grotesk',sans-serif;margin:6px 0 0}
+.producer-full-card>p{font-size:11px;color:#bdc9d8;line-height:1.7;margin:0}
+.producer-full-lanes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.producer-full-lane{min-width:0;border-left:3px solid var(--producer-lane);background:#202632;padding:10px;border-radius:5px}
+.producer-full-lane>strong{font-size:10px;letter-spacing:1px;color:#d9e3f1}
+.producer-full-lane .producer-minigrid{margin-top:10px}
+.producer-full-card .producer-idea-actions{justify-content:flex-end}
+.producer-full-card .producer-idea-actions button{padding:11px 14px}
+@media(max-width:560px){.producer-full-lanes{grid-template-columns:1fr}.producer-full-action button{width:100%}}
