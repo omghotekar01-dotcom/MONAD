@@ -12,7 +12,7 @@ export function StudioGettingStarted({isJam=false}:{isJam?:boolean}){
  const [open,setOpen]=useState(true);
  const demo=async()=>{
    if(music.playing){toast('Your loop is already playing. Press Pause when you want to stop.');return;}
-   try{await music.toggle();toast.success('Demo playing! Try selecting Bass or Synth next.');}
+   try{await music.toggle();}
    catch{toast.error('Browser audio could not start. Check your volume and try again.');}
  };
  const blank=()=>{
