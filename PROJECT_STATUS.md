@@ -1,3 +1,43 @@
+# BEAT DROP — STATUS: LOVABLE DESIGN INTEGRATION
+
+Updated: 2026-10-10
+
+## Upgrade 6 — Source-accurate light UI / React design migration
+
+**Code pushed on design integration branch** before promoting to `main`.
+
+- Imported all 97 Lovable frontend source files, original 3 artwork assets,
+  original TanStack routes and Tailwind/React component system from the
+  owner's private `craft-ui-essentials` repository.
+- Same mint-glass, cobalt-ribbon and coral-glass images shipped as compiled
+  app assets, not generic substitute graphics.
+- Exact original light design tokens, sidebar, typography, transport player,
+  Discover, Studio, Create, Join, Explore, Drops, Library, Profile, Help,
+  local room/lobby and sample Beat Card screens.
+- Retained legacy MONAD Solidity and existing unit/domain tests.
+- Added typed `monad-bridge` between new UI numeric step semantics and
+  4 × 16 contract notes, preserving per-voice drum bitmasks/pitch offsets.
+- Added real numeric room routes for wallet-mediated Create/Join, host-only
+  seat assignments, live authorised edits and confirmation status.
+- Finalized numeric Beat Cards use real contract pattern, eligible seat
+  attribution, native test MON tips and contributor pull-claims.
+- Integrated original Upgrade 5 offline, human-approved Smart Producer
+  into the React studio and owner-scoped real room producer.
+- Brand/favicon and HIG-inspired safe-area/accessibility refinements
+  added without converting exact light visuals back into dark neon.
+- React/TanStack dependency lockfile committed; CI installs via
+  `npm ci --legacy-peer-deps` and runs design, type, music, Solidity,
+  browser and production build checks.
+
+**This does NOT establish that real multiwallet edits, live testnet
+disbursements, HTTPS cross-device invite links, or independent mobile audio
+have been observed. A testnet contract address and live hosting are still
+needed. This is a prototype, not audited financial software.**
+
+See [DESIGN_INTEGRATION.md](docs/DESIGN_INTEGRATION.md).
+
+---
+
 # BEAT DROP — implementation status
 Updated: 2026-10-10 (Upgrade 5)
 
