@@ -1,6 +1,8 @@
 import * as Tone from "tone";
 import {INSTRUMENTS,LABELS,COLORS,STEPS,BPM,NOTES,KEY_LOWER,KEY_UPPER,DRUM_NAMES,createPattern,withNote,keyToNote,hasNotes,contributions,serialize,deserialize,quantizedStep} from "./sequencer.js";
 import { mountRooms } from "./room-controller.js";
+import { mountProducer } from "./producer-panel.js";
+import { applySuggestion, suggestionIsCurrent } from "./producer.js";
 import { beatCardHTML, saveBeatArtwork } from "./beat-card-view.js";
 import "./beat-card.css";
 import "./style.css";
@@ -12,6 +14,37 @@ let sampler=null,loop=null,master=null,masterGain=null,volumeLevel=0.65;
 const sound={};
 let playbackStartedAt=0;
 let roomController=null, pendingRemote=null, previewVisible=false;
+let producerPanel=null, producerAudition=null;
+const audiblePattern=()=>producerAudition?.pattern??pattern;
+function stopProducerAudition(){
+  if(!producerAudition)return;
+  producerAudition=null;
+  if(document.querySelector("#grid"))renderGrid();
+}
+async function startProducerAudition(idea){
+  producerAudition=idea;
+  recording=false;renderControls();renderGrid();
+  if(!playing)await togglePlay();
+  setMessage("Auditioning a proposed arrangement — no changes have been saved.");
+}
+function applyProducerIdea(idea){
+  if(!suggestionIsCurrent(pattern,idea))throw new Error("The original loop changed; generate new ideas.");
+  if(roomController?.inRoom()&&!roomController.canEdit(idea.instrument)){
+    throw new Error("Only the assigned instrument owner may approve this idea during a live round.");
+  }
+  const next=applySuggestion(pattern,idea);
+  if(roomController?.inRoom()){
+    history.push({kind:"room-producer",instrument:idea.instrument,
+      entries:idea.changes.map(change=>({step:change.step,before:[...change.before]}))});
+  }else history.push(pattern);
+  producerAudition=null;
+  pattern=next;
+  if(roomController?.inRoom()){
+    for(const change of idea.changes)roomController.enqueue(idea.instrument,change.step,[...change.after]);
+  }
+  renderGrid();renderStats();
+  return idea.changes.length;
+}
 const mutedInstruments=new Set();
 let soloInstrument=null;
 const shouldPlayStem=inst=>soloInstrument ? inst===soloInstrument : !mutedInstruments.has(inst);
@@ -51,9 +84,10 @@ function setCell(instrument,step,cell){
 }
 function setPatternFromChain(next,boundary=true){
  if(playing&&boundary){pendingRemote=next;return;}
- pendingRemote=null;pattern=next;renderGrid();renderStats();
+ pendingRemote=null;pattern=next;producerPanel?.invalidate();renderGrid();renderStats();
 }
 function toggleRecord(){
+ if(!recording && producerAudition){setMessage("Stop the Producer audition before recording real notes.");return;}
  if(!recording && roomController?.inRoom() && !roomController.canEdit(instrument)){
    setMessage("Read-only instrument. A seat owner can record during a live jam.");return;
  }
@@ -77,9 +111,9 @@ function buildSound(){
  Tone.getTransport().bpm.value=BPM;
  loop=new Tone.Loop(time=>{
   step=(step+1)%STEPS;
-  if(pendingRemote){pattern=pendingRemote;pendingRemote=null;Tone.getDraw().schedule(()=>{renderGrid();renderStats();},time);}
+  if(pendingRemote){pattern=pendingRemote;pendingRemote=null;Tone.getDraw().schedule(()=>{producerPanel?.invalidate();renderGrid();renderStats();},time);}
   for(const inst of INSTRUMENTS){
-   if(shouldPlayStem(inst))for(const note of pattern[inst][step]) trigger(inst,note,time);
+   if(shouldPlayStem(inst))for(const note of audiblePattern()[inst][step]) trigger(inst,note,time);
   }
   Tone.getDraw().schedule(()=>refreshPlayback(step),time);
  },"16n").start(0);
@@ -114,6 +148,7 @@ async function inputNote(note){
  if(!Number.isInteger(note)||note<0||(instrument==="drums"?note>3:note>15))return;
  selectedNote=note;
  trigger(instrument,note,Tone.now()+0.005);notesPlayed++;
+ if(producerAudition){setMessage("Audition active. Stop it before recording notes.");renderPads();return;}
  if(recording){
   const target=playing?timeForStep():0;
   if(roomController?.inRoom() && !roomController.canEdit(instrument)){
@@ -123,11 +158,13 @@ async function inputNote(note){
   else history.push(pattern);
   pattern=withNote(pattern,instrument,target,note,true);
   if(roomController?.inRoom())roomController.enqueue(instrument,target,pattern[instrument][target]);
+  producerPanel?.invalidate();
   setMessage("Recorded "+selectedPadLabel(note)+" at step "+(target+1)+".");
  }
  renderPads();renderGrid();renderStats();
 }
 function toggleCell(i){
+ if(producerAudition){setMessage("This is an unsaved Producer audition. Apply or stop it first.");return;}
  if(roomController?.inRoom() && !roomController.canEdit(instrument)){
    setMessage("Read-only: you need the assigned wallet, a live round and time remaining.");return;
  }
@@ -136,33 +173,42 @@ function toggleCell(i){
  else history.push(pattern);
  pattern=withNote(pattern,instrument,i,selectedNote,current.includes(selectedNote)?false:true);
  if(roomController?.inRoom())roomController.enqueue(instrument,i,pattern[instrument][i]);
+ producerPanel?.invalidate();
  setMessage("Edited step "+(i+1)+" in "+LABELS[instrument]+".");
  renderGrid();renderStats();
 }
 function undo(){
  if(!history.length){setMessage("Nothing to undo yet.");return;}
  const last=history.pop();
- if(last?.kind==="room"){
+ if(last?.kind==="room-producer"){
+   if(!roomController?.canEdit(last.instrument)){setMessage("Cannot undo Producer edits after your seat stops accepting transactions.");return;}
+   for(const entry of last.entries){
+     pattern=setCell(last.instrument,entry.step,entry.before);
+     roomController.enqueue(last.instrument,entry.step,entry.before);
+   }
+ }else if(last?.kind==="room"){
    if(!roomController?.canEdit(last.instrument)){setMessage("Undo is no longer allowed after the round closes.");return;}
    pattern=setCell(last.instrument,last.step,last.before);
    roomController.enqueue(last.instrument,last.step,last.before);
  }else pattern=last;
- setMessage("Last edit undone.");renderGrid();renderStats();
+ producerPanel?.invalidate();setMessage("Last edit undone.");renderGrid();renderStats();
 }
 function changeInstrument(i){
- instrument=i;selectedNote=0;
+ instrument=i;selectedNote=0;producerPanel?.onInstrumentChange();
  document.querySelectorAll("[data-instrument]").forEach(b=>b.classList.toggle("active",b.dataset.instrument===i));
  document.querySelector("#lane-label").textContent=LABELS[i]+" / STEP GRID";
  renderGrid();renderPads();renderStats();
 }
 function renderGrid(){
+ const shown=audiblePattern();
+ const changed=new Set(producerAudition?.changes?.map(change=>change.step)??[]);
  const grid=document.querySelector("#grid");
  grid.innerHTML="";
  const max=instrument==="drums"?4:16;
  for(let s=0;s<STEPS;s++){
-  const active=pattern[instrument][s].includes(selectedNote);
+  const active=shown[instrument][s].includes(selectedNote);
   const b=document.createElement("button");b.type="button";
-  b.className="step"+(active?" hit":"")+(s===step&&playing?" current":"")+(s%4===0?" beat":"");
+  b.className="step"+(active?" hit":"")+(changed.has(s)?" suggested":"")+(s===step&&playing?" current":"")+(s%4===0?" beat":"");
   b.dataset.step=String(s);b.setAttribute("aria-label","Step "+(s+1)+(active?", active":""));
   b.title="Step "+(s+1)+" — click to toggle "+selectedPadLabel(selectedNote);
   b.textContent=String(s+1).padStart(2,"0");b.onclick=()=>toggleCell(s);grid.append(b);
@@ -172,7 +218,7 @@ function renderGrid(){
   const lane=document.createElement("div");lane.className="lane";
   const name=document.createElement("span");name.textContent=LABELS[inst];lane.append(name);
   const bar=document.createElement("div");bar.className="lane-cells";
-  pattern[inst].forEach((cell,s)=>{
+  shown[inst].forEach((cell,s)=>{
    const dot=document.createElement("i");dot.className=(cell.length?"filled ":"")+(s===step&&playing?"now ":"");
    dot.style.setProperty("--lane",COLORS[inst]);bar.append(dot);
   });
@@ -227,7 +273,7 @@ function downloadBeat(){
 function loadBeat(file){
  if(!file)return;
  if(roomController?.inRoom()){setMessage("Leave the on-chain room before importing a local pattern. Confirmed chain notes remain authoritative.");return;}
- file.text().then(text=>{pattern=deserialize(text);history=[];setMessage("Local beat loaded.");renderGrid();renderStats();})
+ file.text().then(text=>{pattern=deserialize(text);history=[];producerPanel?.invalidate();setMessage("Local beat loaded.");renderGrid();renderStats();})
  .catch(()=>setMessage("This file is not a valid Beat Drop loop."));
 }
 function onKey(event){
@@ -251,6 +297,7 @@ el.innerHTML=`
 <section class="workspace" aria-label="Music studio">
 <div class="studio-head"><div><div class="eyebrow">YOUR WORKSPACE</div><h2>Late Night Session <span>↗</span></h2><p>120 BPM · Local practice needs no wallet; shared edits are recorded when a live room is connected</p></div><div class="tempo"><strong>120</strong><span>BPM</span><strong>4/4</strong><span>TIME</span></div></div>
 <div class="seat-row"><button data-instrument="drums" class="seat active"><span class="seat-icon">◈</span><div><b>01 / DRUMS</b><small>Percussion</small></div><span class="seat-dot"></span></button><button data-instrument="bass" class="seat"><span class="seat-icon">♩</span><div><b>02 / BASS</b><small>Low frequencies</small></div><span class="seat-dot"></span></button><button data-instrument="synth" class="seat"><span class="seat-icon">≋</span><div><b>03 / SYNTH</b><small>Lead melody</small></div><span class="seat-dot"></span></button><button data-instrument="pluck" class="seat"><span class="seat-icon">✧</span><div><b>04 / PLUCK</b><small>Bright accents</small></div><span class="seat-dot"></span></button></div>
+<div id="producer-anchor"></div>
 <div class="grid-section"><div class="section-line"><span id="lane-label">DRUMS / STEP GRID</span><span>ONE BAR · 16 STEPS <b id="playhead">01 / 16</b></span></div><div class="step-grid" id="grid"></div><div class="beat-labels"><span>BEAT 01</span><span>BEAT 02</span><span>BEAT 03</span><span>BEAT 04</span></div>
 <div id="lane-overview" class="lanes"></div></div>
 <div class="play-section"><div class="section-line"><span>PLAY YOUR INSTRUMENT</span><span id="pad-hint">A S D F · drum hits</span></div><div class="pads" id="pads"></div><p class="keyboard-tip">Click or tap a pad to play and select a note for the step grid. <kbd>1–4</kbd> change instruments · <kbd>SPACE</kbd> arm recording · <kbd>Z</kbd> undo.</p></div>
@@ -301,13 +348,21 @@ document.addEventListener("click",event=>{
 });
 document.querySelector("#upload").onchange=e=>{loadBeat(e.target.files?.[0]);e.target.value="";};
 renderGrid();renderPads();renderStats();renderControls();
-
+producerPanel=mountProducer({
+  getPattern:()=>pattern,
+  getInstrument:()=>instrument,
+  isShared:()=>Boolean(roomController?.inRoom()),
+  canApply:inst=>!roomController?.inRoom()||roomController.canEdit(inst),
+  onPreview:startProducerAudition,
+  onStopPreview:stopProducerAudition,
+  onApply:applyProducerIdea
+});
 roomController=mountRooms({
  onPattern:setPatternFromChain,
  getMix,
  onStatus:setMessage,
  onRoomChange:(active)=>{
-   history=[];recording=false;renderControls();
+   history=[];recording=false;producerPanel?.onRoomChange();renderControls();
    previewVisible=false;document.querySelector("#preview-card").textContent="◈ Preview Beat Card";
    renderLocalCard();renderStats();
    document.querySelector("#network-status").textContent=active?"Shared room":"Local practice";
