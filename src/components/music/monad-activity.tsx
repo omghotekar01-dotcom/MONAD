@@ -30,6 +30,7 @@ export function MonadActivity({roomId}:{roomId:string}){
    {error&&<div className="mt-5 text-xs text-destructive bg-destructive/5 p-3 rounded-md" role="alert">{error} <a target="_blank" rel="noreferrer" href={explorerBase} className="underline">Open explorer instead</a>.</div>}
    {!data&&!loading&&!error&&<p className="text-xs mt-5 text-muted-foreground">Press <strong>Load transactions</strong> to fetch verified events from Monad’s public RPC. This is not simulated.</p>}
    {data&&<div className="mt-5">
+     {!data.scanComplete&&<p role="alert" className="text-xs text-destructive mb-3">The Monad public RPC limited this activity scan. The confirmed events below are genuine, but the list may be incomplete. <a href={explorerBase+'/address/'+import.meta.env['VITE_BEATDROP_ADDRESS']} target="_blank" rel="noreferrer" className="underline">Check full contract history on MonadVision</a>.</p>}
      <div className="flex flex-wrap items-center justify-between gap-3 border-y border-border py-3 text-[11px] text-muted-foreground">
        <span>{txs.length} event groups · recent scan from block {data.fromBlock.toString()} through {data.toBlock.toString()}</span>
        <a href={explorerBase+'/address/'+import.meta.env['VITE_BEATDROP_ADDRESS']} target="_blank" rel="noreferrer" className="inline-flex gap-1 items-center underline">Full contract explorer <ExternalLink className="size-3"/></a>
