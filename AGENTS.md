@@ -1,3 +1,43 @@
+# BEAT DROP · active project rules (Lovable UI migration)
+
+**The user-facing frontend is now the real light-themed Lovable
+`craft-ui-essentials` React/TanStack Start code, integrated into MONAD.
+Do NOT restart development against the obsolete vanilla `src/main.js` entry.**
+
+- Frontend: React 19, TanStack Start/Router, Tailwind 4 and original Lovable
+  components in `src/components`, file routes in `src/routes`.
+- Original UX assets `src/assets/{mint,blue,coral}-cover.jpg` and
+  `src/styles.css` must remain source-accurate: restrained white/mint
+  aesthetic, sculptural artwork, original sidebar and bottom player.
+  Do NOT replace with dark-neon AI-dashboard templates or random stock images.
+- Apple HIG reference: `dickwu/apple-design-skill` for hierarchy, focus,
+  accessible touch targets, platform-safe layouts and reduced motion.
+- `src/services/monad-bridge.ts` converts original numeric music pattern
+  values to/from retained `src/chain.js` and `src/room-utils.js`.
+- The web app's real on-chain screens are in `src/components/chain-pages.tsx`.
+  Numeric room IDs must read contract; `BD-...` examples are local previews
+  and must NEVER be portrayed as online participants.
+- On-chain changes must require the connected instrument owner, only their
+  own lane and explicit confirmation; never rewrite others' seats with Producer.
+- React Producer in `src/components/music/producer-native.tsx` reuses pure
+  `src/producer.js`; human approval mandatory, **rule-based not trained AI**.
+- The original `src/main.js`, `src/room-controller.js` and old CSS are
+  legacy reference/test fixtures, not the current UI entry.
+- Root `package-lock.json` is committed; use `npm ci --legacy-peer-deps`.
+  Run design Vitest, TypeScript, legacy unit, Solidity, Playwright and
+  Vite/Nitro build checks. TanStack Start creates `.output`, not plain `dist`.
+- Preserve chain ID 10143 and Monad TESTNET-only limitations.
+- No live external 2-wallet/faucet/hosting verification has been performed;
+  do not invent a deployment, URL, acceptance result or security audit.
+- Absolutely no private keys/seed phrases/session secrets in chat/GitHub.
+- Keep `PROJECT_STATUS.md` accurately updated; full architecture guide
+  `docs/DESIGN_INTEGRATION.md` and deployment `docs/MULTIPLAYER.md`.
+- Commit author desired `Om Ghotekar <omghotekar01@gmail.com>` on user-local
+  Git; connector commits may show profile display name `Omiiii`. Do not
+  claim or alter author metadata dishonestly.
+
+---
+
 # BEAT DROP agent instructions
 
 - Product: multiplayer four-seat music sequencer for Monad **testnet**. No generic crypto dashboard and no change of product scope.
