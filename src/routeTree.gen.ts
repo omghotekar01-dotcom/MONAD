@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ChainRouteImport } from './routes/chain'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as DropsRouteImport } from './routes/drops'
 import { Route as ExploreRouteImport } from './routes/explore'
@@ -27,6 +28,11 @@ import { Route as RoomRoomIdStudioRouteImport } from './routes/room.$roomId.stud
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChainRoute = ChainRouteImport.update({
+  id: '/chain',
+  path: '/chain',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreateRoute = CreateRouteImport.update({
@@ -96,6 +102,7 @@ const RoomRoomIdStudioRoute = RoomRoomIdStudioRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/chain': typeof ChainRoute
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
   '/drops': typeof DropsRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/room/$roomId/': typeof RoomRoomIdIndexRoute
 }
 export interface FileRoutesByTo {
+  '/chain': typeof ChainRoute
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
   '/drops': typeof DropsRoute
@@ -127,6 +135,7 @@ export interface FileRoutesByTo {
   '/room/$roomId': typeof RoomRoomIdIndexRoute
 }
 export interface FileRoutesById {
+  '/chain': typeof ChainRoute
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
@@ -146,6 +155,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/chain'
     | '/'
     | '/create'
     | '/drops'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/room/$roomId/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/chain'
     | '/'
     | '/create'
     | '/drops'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/room/$roomId/studio'
     | '/room/$roomId'
   id:
+    | '/chain'
     | '__root__'
     | '/'
     | '/create'
@@ -194,6 +206,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  ChainRoute: typeof ChainRoute
   IndexRoute: typeof IndexRoute
   CreateRoute: typeof CreateRoute
   DropsRoute: typeof DropsRoute
@@ -209,6 +222,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/chain': {
+      id: '/chain'
+      path: '/chain'
+      fullPath: '/chain'
+      preLoaderRoute: typeof ChainRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -327,6 +347,7 @@ const RoomRoomIdRouteWithChildren = RoomRoomIdRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  ChainRoute: ChainRoute,
   IndexRoute: IndexRoute,
   CreateRoute: CreateRoute,
   DropsRoute: DropsRoute,
