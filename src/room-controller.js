@@ -413,6 +413,12 @@ export function mountRooms({onPattern,onStatus,onRoomChange,getMix=()=>({})}) {
     }
   }
   const unsub=walletEvents(async next=>{
+    if(!sameAddress(wallet,next)){
+      // Never carry optimistic music edits across an account/network change.
+      queue.clear();inflight.clear();failed.clear();
+      updatePattern(true);
+      updateStatus("Wallet or network changed. Unconfirmed local edits were cleared; chain state will be reloaded.");
+    }
     wallet=next;preferSession=false;lastFrameSignature="";
     render(true);await refresh(true);
   });
