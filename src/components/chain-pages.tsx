@@ -1,7 +1,7 @@
 import { NativeProducer } from './music/producer-native';
 import { MonadActivity } from './music/monad-activity';
 import { signaturePattern, SIGNATURE_SONG } from '@/lib/demo-song';
-import {readChainDraft,clearChainDraft,draftStepCount} from '@/lib/chain-draft';
+import {readChainDraft,clearChainDraft,draftStepCount,type SongDraft} from '@/lib/chain-draft';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, ArrowRight, Check, Copy, Wallet, Play, Pause, RotateCcw, Circle, ExternalLink, RefreshCw, Radio, Download, Music2 } from 'lucide-react';
@@ -172,7 +172,8 @@ export function ChainStudio({roomId}:{roomId:string}){
   const {room,loading,error,refresh}=useChainRoom(roomId);
   const {account,connect}=useConnectedWallet();const m=useMusic();const music=useRef(m);music.current=m;
   const [busy,setBusy]=useState(false),[activity,setActivity]=useState(''),[seconds,setSeconds]=useState(90),[sessionMode,setSessionMode]=useState(false);
-  const [draft,setDraft]=useState(()=>readChainDraft());
+  const [draft,setDraft]=useState<SongDraft|null>(null);
+  useEffect(()=>{setDraft(readChainDraft());},[]);
   const pending=useRef(new Map<Instrument,Map<number,number>>()),flushing=useRef(false),timer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const roomRef=useRef(room);roomRef.current=room;const accountRef=useRef(account);accountRef.current=account;
   const loadedId=useRef('');
@@ -396,7 +397,9 @@ export function ChainBeat({beatId}:{beatId:string}){
 }
 
 export function ChainCreatePage(){
-  const navigate=useNavigate();const [title,setTitle]=useState(()=>readChainDraft()?.title??''),[busy,setBusy]=useState(false),[status,setStatus]=useState('');
+  const navigate=useNavigate();const [title,setTitle]=useState(''),[busy,setBusy]=useState(false),[status,setStatus]=useState('');
+  const [createDraft,setCreateDraft]=useState<SongDraft|null>(null);
+  useEffect(()=>{const found=readChainDraft();if(found){setCreateDraft(found);setTitle(found.title);}},[]);
   const create=async(event:React.FormEvent)=>{
     event.preventDefault();if(busy)return;setBusy(true);setStatus('Waiting for your MetaMask approval…');
     try{const roomId=await createChainRoom(title,hash=>setStatus('Transaction pending: '+transactionExplorer(hash)));
@@ -408,9 +411,9 @@ export function ChainCreatePage(){
     <p className="eyebrow mb-3">MONAD TESTNET / ON-CHAIN CREATION</p>
     <h1 className="page-title">Make room for a little magic.</h1>
     <p className="text-sm text-muted-foreground mt-4 mb-10">One room. Four instruments. Everyone credited for accepted final notes.</p>
-    {readChainDraft()&&<div className="studio-surface p-4 mb-5 text-xs">
+    {createDraft&&<div className="studio-surface p-4 mb-5 text-xs">
        <strong>Your local song draft is ready.</strong>
-       <p className="text-muted-foreground mt-2">{readChainDraft()?.title} · {draftStepCount(readChainDraft()!.pattern)} filled steps across four instruments.</p>
+       <p className="text-muted-foreground mt-2">{createDraft.title} · {draftStepCount(createDraft.pattern)} filled steps across four instruments.</p>
        <p className="text-muted-foreground mt-1">After creating a real room, assign your wallet to all four seats, start the 90-second round, and click <strong>Publish my draft to Monad</strong>. The smart contract uses a fixed 120 BPM loop; a local Lo-fi tempo such as 84 BPM is <strong>not</strong> saved on-chain.</p>
     </div>}
     <form onSubmit={event=>void create(event)} className="space-y-7">
