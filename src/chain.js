@@ -338,14 +338,19 @@ export async function reclaimSessionGas(onHash){
   const receipt=await publicClient.waitForTransactionReceipt({hash,confirmations:1,timeout:60000});
   if(receipt.status!=="success")throw new Error("Browser session gas reclaim reverted.");
   const stillThere=await publicClient.getBalance({address:session.account.address});
-  // Keep the secret available until the owner explicitly discards it; tiny
-  // transfer dust may remain after fee calculation.
+  // When the remaining dust cannot cover another 21k-gas recovery transfer,
+  // retaining a volatile, unusable key would only block the next session.
+  // This dust may be permanently unrecoverable. Never claim a full refund.
+  if(stillThere<=estimated*gasPrice)clearSession();
   return {hash,amount,remaining:stillThere};
 }
 export async function submitBatch(roomId,instrument,steps,values,owner,onHash,preferSession=false){
   await verifyRpc();
   const args=[BigInt(roomId),instrument,steps,values,owner];
   if(preferSession){
+    // A funded delegated key may not be used after the user changes the
+    // selected MetaMask account; check synchronously before every send.
+    await checkedWriter();
     if(!sessionActive(roomId))throw new Error("Session expired or not authorized; reconnect a new session.");
     const sessionAccount=session.account;
     const gasBalance=await publicClient.getBalance({address:sessionAccount.address});
