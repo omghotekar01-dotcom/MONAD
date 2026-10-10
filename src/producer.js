@@ -158,3 +158,35 @@ export function applySuggestion(pattern,suggestion){
   for(const change of suggestion.changes)next[suggestion.instrument][change.step]=[...change.after];
   return next;
 }
+
+export function generateFullBeat(pattern,{style="house",energy=2}={}){
+  assertPattern(pattern);
+  const source=JSON.stringify(pattern);
+  let next=clone(pattern);
+  const variants={drums:0,bass:0,synth:1,pluck:2};
+  const edits=[];
+  for(const instrument of INSTRUMENTS){
+    const idea=generateSuggestions(next,{instrument,style,energy})[variants[instrument]];
+    const before=next;
+    next=applySuggestion(before,idea);
+    for(const change of laneChanges(before,next,instrument)){
+      edits.push({...change,instrument});
+    }
+  }
+  return {
+    kind:"full",
+    id:"full:"+style+":"+energy+":"+source.length,
+    title:"Full four-track arrangement",
+    rationale:"A drum foundation, supporting bass, counter-rhythm synth and bright pluck turnaround.",
+    style,energy,source,pattern:next,
+    changes:edits
+  };
+}
+export function fullBeatIsCurrent(pattern,draft){
+  assertPattern(pattern);
+  return draft?.kind==="full" && JSON.stringify(pattern)===draft.source;
+}
+export function applyFullBeat(pattern,draft){
+  if(!fullBeatIsCurrent(pattern,draft))throw new Error("Full beat draft is stale. Generate it again.");
+  return clone(draft.pattern);
+}
