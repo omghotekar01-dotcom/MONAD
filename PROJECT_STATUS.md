@@ -2,55 +2,83 @@
 
 Updated: 2026-10-10
 
-## Verified development milestones
+## Milestone 1 — Local music studio: DONE (local user test + CI)
+- Four playable Tone.js instruments, 16-step one-bar sequencing at 120 BPM.
+- Keyboard/touch/grid playback, local record, undo, JSON save/open, responsive layout.
+- User reported the project opens and works locally.
+- Browser audio fidelity and multi-device latency remain subjective manual tests.
 
-### Milestone 1 — Local music studio
-- Four Tone.js synthesizer/drum sounds and visible instrument seats.
-- Keyboard, pointer pads, 16-step grid at 120 BPM, play, recording arm, undo.
-- Local JSON pattern save/load, distinct drum masks, 16 melodic pitches.
-- Responsive UI; no wallet required for practice.
-- **CI result:** 8 sequencer unit tests passed; Vite production build succeeded.
-- Local user reported that the project runs.
+## Milestone 2 — Solidity contract: DONE (automated tests)
+- `BeatDrop.sol` Lobby → Live → Finalized, host-approved seats, 90s deadline.
+- Room-specific restricted session-key authorization/revocation, final pattern,
+  eligible-seat snapshot, exact native MON tip allocation and pull claims.
+- Testnet-only deployment script, config and protocol documentation.
 
-### Milestone 2 — Solidity foundation
-- `contracts/BeatDrop.sol` with Lobby → Live → Finalized lifecycle.
-- Host-assigned, frozen instrument seat ownership and 90-second deadline.
-- Owner or short-lived room-scoped session edit permission; revocation.
-- Explicit sorted, bounded cell batches; idempotent writes; validation.
-- Persisted pattern; post-deadline finalization callable by anyone.
-- Transparent contributor snapshot; no payout for empty seats.
-- MON tipping into room-scoped, seat-weighted claimable balances.
-- Exact remainder allocation, repeated tip aggregation, pull claims.
-- Claim reentrancy guard and blocked double withdrawals.
-- `hardhat.config.cjs`, contract test suite, safe deploy script,
-  `network/monad.testnet.json`, updated GitHub Actions workflow.
-- **CI verification:** GitHub Actions run
-  https://github.com/omghotekar01-dotcom/MONAD/actions/runs/38035527002
-  completed successfully: 2 Solidity files compiled, **13 contract tests passed**,
-  8 sequencer tests passed, production web bundle built.
+## Milestone 3 — Browser multiplayer frontend: IMPLEMENTED, activation pending
+- Monad Testnet wallet connect and network switching via injected EVM wallet.
+- Read-only room viewing, Create/Join Jam, `?room=ID` deep links and QR invites.
+- Host instrument assignment, participant-wallet copy and frozen roster.
+- Browser instrument edits checked against current on-chain seat ownership.
+- Coalescing single-lane sorted batches (~one per bar) with transaction statuses.
+- Optional temporary browser-memory session key (expires/revocable), explicit
+  session gas funding; can set up in Lobby before round begins.
+- Direct main-wallet signing fallback.
+- Authoritative contract-state refresh (polling) and optimistic rollback on failures;
+  updates applied at local musical boundaries.
+- Post-deadline finalization, `?beat=ID` permanent Beat Card route, replay using
+  confirmed contract pattern, native MON tip and main-wallet claim UI.
+- Explicit config guard refuses fake room transactions without contract deployment.
+- Root `package-lock.json` committed and CI installs with `npm ci`.
+- Responsive room and transactional UI.
 
-## Incomplete / not verified
-- **Contract is NOT deployed to Monad Testnet.** No address or tx exists.
-- **Frontend is NOT yet connected to the contract.** Local practice still operates.
-- Browser audio quality and responsive interactions remain manual/device checks.
-- Wallet setup, session-key creation/storage/funding, transaction batching, event
-  reconciliation, room invitations, multiplayer convergence, Beat Cards,
-  tips and claims in the browser are **Milestones 3–4**.
-- Full Notion hackathon resources checklist is not yet independently accessible
-  from the provided URL; review prior to submission.
-- Root dependency lockfile not committed yet; npm install resolves dependencies.
-- No external security audit. This is testnet-only prototype code.
-- GitHub API commits use main-account login `omghotekar01-dotcom` and email
-  `omghotekar01@gmail.com` but show GitHub profile author name `Omiiii`,
-  not the requested `Om Ghotekar` display name. Existing history was not rewritten.
+### Automated verification
 
-## Test this upgrade locally
+Confirmed GitHub Actions run:
+https://github.com/omghotekar01-dotcom/MONAD/actions/runs/38036590121
+- 14 Node domain tests passed.
+- 13 Solidity contract tests passed (on ephemeral Hardhat chain).
+- 8 Playwright browser smoke tests passed (desktop and mobile Chromium configurations).
+- Solidity compile and Vite production bundle succeeded.
 
-From the existing MONAD folder in VS Code (PowerShell):
+Later pipeline runs must be checked individually; this report does not claim
+every future head revision has passed.
+
+### External activation still required (NOT complete)
+
+- The user must deploy `BeatDrop.sol` to **Monad Testnet, chain ID 10143**,
+  using MetaMask/Remix or a safe test-only local deployment signer.
+- The public contract address must be inserted into **`.env.local`** as
+  `VITE_BEATDROP_ADDRESS=0x...`; without it Create Jam is intentionally disabled.
+- Hosted HTTPS frontend URL for invitations to work across separate devices;
+  local `localhost` links are not shareable with remote friends.
+- **Two real wallets editing the same Monad Testnet room and actual tip/claim
+  transactions remain UNVERIFIED.** Do not claim live end-to-end success yet.
+- Explorer verification, deployment tx, block, source revision and hosted URL
+  cannot be recorded before real deployment.
+- No external security audit, and no proof of legal music copyright.
+
+### Known technical limitations
+
+- Public read-only state polls every 2.5 seconds; devices are not sample-accurate.
+- Browser-memory session keys are forgotten on reload; leftover funded session
+  test MON can become unrecoverable. Use small TESTNET-only amounts or sign
+  directly with main wallet.
+- A transaction mined after the cutoff may fail even if submitted before it;
+  UI shows pending/failed rather than claiming phantom notes.
+- External wallet/RPC availability and faucet quotas are dependencies.
+- Final Beat Card is replayable contract data, **not yet an NFT mint**.
+- No AI Producer yet. No external streaming royalties.
+- Monad Foundation Notion resources page could not be fully fetched; verify its
+  complete latest submission requirements manually.
+- Connector-created GitHub commits are attributed to `omghotekar01-dotcom`
+  and `omghotekar01@gmail.com`, but GitHub's profile display name is
+  `Omiiii` instead of requested local Git author label `Om Ghotekar`.
+
+## Exact local commands (VS Code / PowerShell)
 
 ```powershell
 git pull
-npm install
+npm ci
 npm test
 npm run contracts:compile
 npm run contracts:test
@@ -58,15 +86,21 @@ npm run build
 npm run dev
 ```
 
-The contract test suite executes on a local Hardhat chain and requires no wallet.
+Optional browser test (install Chromium once if needed):
+```powershell
+npx playwright install chromium
+npm run test:e2e
+```
 
-## Next milestone — browser-to-Monad
-- Wallet connect and network check (chain ID 10143).
-- On-chain room create, host assignment, lobby/start/jam/finalize screens.
-- Scoped temporary session authorization plus explicit separate gas top-up.
-- Transaction batching, pending/failure display, chain-state reconciliation.
-- Reliable two-independent-browser demo.
-- Then Beat Cards, replay, tips and claims.
+To enable rooms and public invitations, follow **[docs/MULTIPLAYER.md](docs/MULTIPLAYER.md)**.
+Do not put a seed phrase or private key in ChatGPT, GitHub or browser-visible Vite variables.
 
-## Deployment
-None yet. Source and deployment guidance: [docs/CONTRACTS.md](docs/CONTRACTS.md).
+## Next external acceptance and release tasks
+
+1. Confirm deployed testnet address and chain ID 10143 (never mainnet).
+2. Set public address in `.env.local`, restart frontend and create test room.
+3. Complete a real two-wallet edit and independent-browser convergence test.
+4. Verify a finalized Beat Card, real testnet MON tip/claim and explorer receipts.
+5. Host frontend on HTTPS and verify deep-link invite and mobile layout.
+6. Record deployment manifest, demo run results and conference/hackathon resources
+   before marking the project as externally delivered.
