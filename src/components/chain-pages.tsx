@@ -84,8 +84,20 @@ export function ChainLobby({roomId}:{roomId:string}){
   const {account,connect}=useConnectedWallet();
   const [addresses,setAddresses]=useState<string[]>(['','','','']);
   const [busy,setBusy]=useState(''),[activity,setActivity]=useState('');
+  const [requestedSeat,setRequestedSeat]=useState<number|null>(null);
   const navigate=useNavigate();
   useEffect(()=>{if(room)setAddresses(old=>room.seats.map((s,i)=>s??old[i]??''));},[room?.id,room?.seats.join('|')]);
+  // Requests are links, not assignments. The host must review and sign on-chain.
+  useEffect(()=>{
+    if(!room||room.phase!=='Lobby'||!sameWallet(account,room.host))return;
+    const query=new URLSearchParams(window.location.search);
+    const rawSeat=query.get('requestSeat'),requestedWallet=query.get('requestWallet');
+    if(rawSeat===null||!/^[0-3]$/.test(rawSeat)||!requestedWallet||!/^0x[0-9a-fA-F]{40}$/.test(requestedWallet))return;
+    const seat=Number(rawSeat);
+    if(room.seats[seat])return;
+    setAddresses(old=>old.map((value,i)=>i===seat?requestedWallet:value));
+    setActivity('Seat request for '+instruments[seat]+' from '+abbreviatedWallet(requestedWallet)+'. Verify the wallet with the player before approving the assignment.');
+  },[room?.id,room?.phase,room?.seats.join('|'),account]);
   if(!room)return <ChainState loading={loading} error={error}/>;
   const isHost=sameWallet(account,room.host);
   const mySeat=room.seats.some(a=>sameWallet(a,account));
@@ -96,7 +108,29 @@ export function ChainLobby({roomId}:{roomId:string}){
     catch(e){setActivity(chainError(e));toast.error(chainError(e));}
     finally{setBusy('');}
   };
-  const saveSeat=(idx:number,address:string)=>void tx('Seat assignment',hash=>assignChainSeat(room.id,idx,address,hash));
+  const saveSeat=(idx:number,address:string)=>void tx('Seat assignment',async hash=>{
+    const latest=await fetchChainRoom(room.id);
+    if(latest.phase!=='Lobby'||latest.seats[idx])throw new Error('This seat is no longer available. Refresh before assigning another member.');
+    return assignChainSeat(room.id,idx,address,hash);
+  });
+  const requestSeat=async(idx:number)=>{
+    if(room.phase!=='Lobby'||room.seats[idx]){toast.error('This seat is no longer available.');return;}
+    const wallet=account??await connect();
+    if(!wallet)return;
+    const link=new URL('/room/'+room.id+'/lobby',window.location.origin);
+    link.searchParams.set('requestSeat',String(idx));
+    link.searchParams.set('requestWallet',wallet);
+    setRequestedSeat(idx);
+    const message='Seat request for '+instruments[idx]+'. The host must confirm '+abbreviatedWallet(wallet)+' in MetaMask before it becomes yours.';
+    try{
+      await navigator.clipboard.writeText(link.toString());
+      setActivity(message+' Request link copied — send it to the host.');
+      toast.success('Request link copied. Send it to the room host.');
+    }catch{
+      setActivity(message+' Send this link to the host: '+link.toString());
+      toast('Copy the request link shown below and send it to the host.');
+    }
+  };
   const seatAll=async()=>{
     if(!isHost||!account||room.phase!=='Lobby'||busy)return;
     if(room.seats.some(s=>s&&!sameWallet(s,account))){toast.error('Other people already own seats. Rehearsal will not overwrite their seats.');return;}
@@ -144,7 +178,14 @@ export function ChainLobby({roomId}:{roomId:string}){
           <label className="text-[10px] text-muted-foreground" htmlFor={'seat-'+idx}>Wallet address</label>
           <input id={'seat-'+idx} className="field text-[11px] font-mono" placeholder="0x…" value={addresses[idx]??''} onChange={e=>setAddresses(v=>v.map((x,n)=>n===idx?e.target.value:x))}/>
           {account&&<Button size="sm" variant="ghost" className="w-full text-xs" onClick={()=>setAddresses(v=>v.map((x,n)=>n===idx?account:x))}>Use my wallet</Button>}
-          <Button className="w-full text-xs" size="sm" disabled={!!busy||!addresses[idx]} onClick={()=>saveSeat(idx,addresses[idx]??'')}>Assign on-chain</Button>
+          <Button className="w-full text-xs" size="sm" disabled={!!busy||!addresses[idx]||!!owner} onClick={()=>saveSeat(idx,addresses[idx]??'')}>Assign on-chain</Button>
+        </div>}
+        {!isHost&&room.phase==='Lobby'&&<div className="mt-4">
+          <Button className="w-full text-xs" size="sm" variant={mine?'secondary':'outline'}
+            disabled={!!busy||!!owner} onClick={()=>void requestSeat(idx)}>
+            {mine?'Assigned to you':owner?'Occupied':requestedSeat===idx?'Copy request again':'Request this seat'}
+          </Button>
+          {!owner&&requestedSeat===idx&&<p className="text-[10px] mt-2 text-muted-foreground">Awaiting host approval. This is not an on-chain reservation.</p>}
         </div>}
       </article>;
     })}</div>
@@ -171,7 +212,7 @@ export function ChainLobby({roomId}:{roomId:string}){
       </div>
     </section>}
     {activity&&<p role="status" className="mt-5 text-xs text-muted-foreground break-all">{activity}</p>}
-    {room.phase==='Lobby'&&!isHost&&<p className="text-xs text-muted-foreground mt-5">To join: connect your wallet and share its address with the host. Only the host can assign seats.</p>}
+    {room.phase==='Lobby'&&!isHost&&<p className="text-xs text-muted-foreground mt-5">Choose an available seat and send its request link to the host. Only the host can confirm seat ownership on-chain; occupied seats cannot be requested.</p>}
   </div>;
 }
 export function ChainStudio({roomId}:{roomId:string}){
