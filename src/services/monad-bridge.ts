@@ -39,7 +39,7 @@ export interface ChainActivityItem{
   name:ChainEventName;hash:string;block:number;index:number;owner:string|null;operator:string|null;
   instrument:number|null;step:number|null;value:number|null;amount:string|null;eligibleMask:number|null;
 }
-export interface ChainActivity{fromBlock:bigint;toBlock:bigint;windowBlocks:number;events:ChainActivityItem[]}
+export interface ChainActivity{fromBlock:bigint;toBlock:bigint;windowBlocks:number;scanComplete:boolean;events:ChainActivityItem[]}
 export async function fetchRoomActivity(id:string,lookback=4096):Promise<ChainActivity>{
  ensureContract();if(!isOnChainId(id))throw new Error('Invalid on-chain room ID.');
  return await chain.readRoomEvents(id,lookback) as ChainActivity;
