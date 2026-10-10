@@ -1,0 +1,11 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {createPattern,withNote,contributions,allocation,keyToNote,serialize,deserialize,quantizedStep,hasNotes} from "../src/sequencer.js";
+test("drum polyphony and immutability",()=>{const a=createPattern();const b=withNote(a,"drums",0,0);const c=withNote(b,"drums",0,2);assert.deepEqual(c.drums[0],[0,2]);assert.deepEqual(a.drums[0],[]);});
+test("melodic lanes are monophonic",()=>{const a=withNote(withNote(createPattern(),"synth",3,5),"synth",3,9);assert.deepEqual(a.synth[3],[9]);});
+test("reject malformed steps and pitches",()=>{assert.throws(()=>withNote(createPattern(),"drums",16,0),RangeError);assert.throws(()=>withNote(createPattern(),"bass",0,20),RangeError);});
+test("upper and lower key rows stay distinct",()=>{assert.equal(keyToNote("pluck","a"),0);assert.equal(keyToNote("pluck","q"),8);assert.equal(keyToNote("drums","f"),3);});
+test("only active seats share payments",()=>{let a=withNote(createPattern(),"synth",2,2);a=withNote(a,"bass",0,4);const split=allocation(a,{bass:"0xAAA",synth:"0xAAA",drums:"0xBBB"});assert.equal(split.totalSeats,2);assert.equal(split.weights["0xAAA"],2);assert.equal(split.weights["0xBBB"],undefined);});
+test("round-trip with strict validation",()=>{const a=withNote(createPattern(),"drums",4,3);assert.deepEqual(deserialize(serialize(a)),a);assert.throws(()=>deserialize(JSON.stringify({version:2,bpm:120,steps:16,pattern:a})));});
+test("quantization wraps the one-bar boundary",()=>{assert.equal(quantizedStep(2),0);assert.equal(quantizedStep(0.125),1);});
+test("empty rounds cannot appear as recorded beats",()=>{assert.equal(hasNotes(createPattern()),false);});
