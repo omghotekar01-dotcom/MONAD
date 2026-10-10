@@ -8,7 +8,7 @@ import "./style.css";
 const el=document.querySelector("#app");
 let pattern=createPattern(),history=[],instrument="drums",selectedNote=0,recording=false,playing=false,started=false,step=-1;
 let beatUrl="",message="Practice is local — no wallet needed.",notesPlayed=0;
-let sampler=null,loop=null,master=null;
+let sampler=null,loop=null,master=null,masterGain=null,volumeLevel=0.65;
 const sound={};
 let playbackStartedAt=0;
 let roomController=null, pendingRemote=null, previewVisible=false;
@@ -64,7 +64,8 @@ function toggleRecord(){
 function buildSound(){
  if(started)return;
  master=new Tone.Limiter(-1).toDestination();
- const gain=new Tone.Gain(0.7).connect(master);
+ masterGain=new Tone.Gain(volumeLevel).connect(master);
+ const gain=masterGain;
  sound.bass=new Tone.MonoSynth({oscillator:{type:"sawtooth"},envelope:{attack:0.01,decay:0.18,sustain:0.25,release:0.1},filterEnvelope:{attack:0.01,decay:0.12,sustain:0.3,release:0.1,baseFrequency:80,octaves:2}}).connect(gain);
  sound.synth=new Tone.PolySynth(Tone.Synth,{oscillator:{type:"triangle"},envelope:{attack:0.015,decay:0.12,sustain:0.22,release:0.18}}).connect(gain);
  sound.pluck=new Tone.PolySynth(Tone.Synth,{oscillator:{type:"sine"},envelope:{attack:0.001,decay:0.15,sustain:0.02,release:0.12}}).connect(gain);
@@ -186,6 +187,7 @@ function refreshPlayback(value){
  const lanes=document.querySelectorAll(".lane-cells");
  lanes.forEach(l=>Array.from(l.children).forEach((c,i)=>c.classList.toggle("now",i===value)));
  document.querySelector("#playhead").textContent=String(value+1).padStart(2,"0")+" / 16";
+ document.querySelectorAll("[data-card-progress]").forEach(bar=>{bar.style.width=((value+1)*100/STEPS)+"%";});
 }
 function renderPads(){
  const pads=document.querySelector("#pads");pads.innerHTML="";
@@ -251,7 +253,7 @@ el.innerHTML=`
 <div class="grid-section"><div class="section-line"><span id="lane-label">DRUMS / STEP GRID</span><span>ONE BAR · 16 STEPS <b id="playhead">01 / 16</b></span></div><div class="step-grid" id="grid"></div><div class="beat-labels"><span>BEAT 01</span><span>BEAT 02</span><span>BEAT 03</span><span>BEAT 04</span></div>
 <div id="lane-overview" class="lanes"></div></div>
 <div class="play-section"><div class="section-line"><span>PLAY YOUR INSTRUMENT</span><span id="pad-hint">A S D F · drum hits</span></div><div class="pads" id="pads"></div><p class="keyboard-tip">Click or tap a pad to play and select a note for the step grid. <kbd>1–4</kbd> change instruments · <kbd>SPACE</kbd> arm recording · <kbd>Z</kbd> undo.</p></div>
-<div class="transport"><div class="transport-left"><button id="play" class="play-btn">▶ Play loop</button><button id="record" class="record-btn">○ Record</button><button id="undo">↶ Undo</button></div><div class="transport-right"><button id="preview-card" disabled>◈ Preview Beat Card</button><button id="save" disabled>↓ Save loop</button><label for="upload" class="upload-btn">↑ Open loop<input id="upload" type="file" accept=".json,application/json" hidden></label></div></div>
+<div class="transport"><div class="transport-left"><button id="play" class="play-btn">▶ Play loop</button><button id="record" class="record-btn">○ Record</button><button id="undo">↶ Undo</button></div><div class="transport-right"><label for="master-volume" class="volume-control">MASTER <input id="master-volume" type="range" min="0" max="100" value="65" aria-label="Master volume"></label><button id="preview-card" disabled>◈ Preview Beat Card</button><button id="save" disabled>↓ Save loop</button><label for="upload" class="upload-btn">↑ Open loop<input id="upload" type="file" accept=".json,application/json" hidden></label></div></div>
 <div id="status" class="status" role="status" aria-live="polite">Practice is local — no wallet needed.</div>
 </section>
 <div id="local-card-anchor" class="local-card-section" hidden></div>
@@ -264,6 +266,7 @@ document.querySelector("#record").onclick=toggleRecord;
 document.querySelector("#undo").onclick=undo;
 document.querySelector("#save").onclick=downloadBeat;
 document.querySelector("#preview-card").onclick=togglePreview;
+document.querySelector("#master-volume").oninput=e=>{volumeLevel=Number(e.target.value)/100;if(masterGain)masterGain.gain.rampTo(volumeLevel,0.04);};
 document.addEventListener("click",event=>{
  const control=event.target.closest("[data-card-play],[data-card-mute],[data-card-solo],[data-card-art],[data-card-share]");
  if(!control)return;
