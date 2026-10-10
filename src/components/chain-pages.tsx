@@ -111,7 +111,7 @@ export function ChainLobby({roomId}:{roomId:string}){
         <div className="flex items-center justify-between"><Icon className="size-7 instrument-color"/>{mine&&<Check className="size-4 text-mint-foreground"/>}</div>
         <h3 className="text-lg font-semibold capitalize mt-7">{inst}</h3>
         <p className="text-[11px] text-muted-foreground mt-2 mb-4">{mine?'Your assigned seat':owner?'Assigned':'Available for assignment'}</p>
-        <OwnerChip address={owner}/>
+        <OwnerChip address={owner??null}/>
         {isHost&&room.phase==='Lobby'&&<div className="mt-4 space-y-2">
           <label className="text-[10px] text-muted-foreground" htmlFor={'seat-'+idx}>Wallet address</label>
           <input id={'seat-'+idx} className="field text-[11px] font-mono" placeholder="0x…" value={addresses[idx]??''} onChange={e=>setAddresses(v=>v.map((x,n)=>n===idx?e.target.value:x))}/>
@@ -234,7 +234,7 @@ export function ChainStudio({roomId}:{roomId:string}){
     </section>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
       <section className="studio-surface p-5"><p className="eyebrow mb-3">COLLABORATORS / WALLET SEATS</p>
-        {instruments.map((inst,idx)=><div className="flex items-center justify-between border-b border-border py-3 last:border-none" key={inst}><span className={`text-xs capitalize instrument-${inst}`}>{inst}</span><OwnerChip address={room.seats[idx]}/></div>)}
+        {instruments.map((inst,idx)=><div className="flex items-center justify-between border-b border-border py-3 last:border-none" key={inst}><span className={`text-xs capitalize instrument-${inst}`}>{inst}</span><OwnerChip address={room.seats[idx]??null}/></div>)}
       </section>
       <section className="studio-surface p-5"><p className="eyebrow mb-3">TRANSACTION STATUS</p><p role="status" className="text-xs text-muted-foreground leading-relaxed break-all">{activity||'Only confirmed edits are recorded on-chain.'}</p>
         {eligible&&room.phase==='Live'&&<div className="mt-5 flex flex-wrap gap-2">
@@ -288,7 +288,7 @@ export function ChainBeat({beatId}:{beatId:string}){
             const owner=room.seats[idx];const active=(room.eligibleMask&(1<<idx))!==0;
             return <div className="flex gap-3 items-center" key={inst}>
               <div className={`avatar w-9 h-9 instrument-${inst} instrument-bg instrument-color`}>{inst.slice(0,1).toUpperCase()}</div>
-              <div><p className="text-xs font-semibold capitalize">{inst} · {active?payout.toFixed(2)+'%':'No share'}</p><OwnerChip address={owner}/><p className="text-[10px] text-muted-foreground mt-1">{active?'Retained accepted notes':'Empty on final pattern'}</p></div>
+              <div><p className="text-xs font-semibold capitalize">{inst} · {active?payout.toFixed(2)+'%':'No share'}</p><OwnerChip address={owner??null}/><p className="text-[10px] text-muted-foreground mt-1">{active?'Retained accepted notes':'Empty on final pattern'}</p></div>
             </div>;
           })}</div>
           <p className="text-[10px] text-muted-foreground mt-4">Equal shares per eligible seat, not per hit. One wallet owning multiple eligible seats receives the combined entitlement. Exact wei rounding happens in the Solidity contract.</p>
