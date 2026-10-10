@@ -96,6 +96,29 @@ transaction reliability, or on-chain tips.
 
 **Start the real blockchain activation:** [ACTIVATE_MONAD.md](docs/ACTIVATE_MONAD.md).
 
+## One-time contract deployment directly from VS Code (no Remix)
+
+A safe deployment workflow is built into this repository. A dedicated
+throwaway testnet signer is generated locally under your user AppData
+(outside any OneDrive-synced project directory). Your existing MetaMask
+Account 1 key is **not** exported or accessed.
+
+```powershell
+npm ci --legacy-peer-deps
+npm run deployer:prepare
+# Send a little TESTNET MON to the printed PUBLIC deployer address.
+npm run deployer:status
+npm run contracts:compile
+npm run contracts:deploy:testnet
+npm run chain:check
+npm run dev
+```
+
+Deployment automatically writes the PUBLIC contract address into Git-ignored
+`.env.local`. A live wallet with some test MON is still needed to fund
+the throwaway signer. Only Monad Testnet chain ID 10143 is allowed.
+**Full setup:** [VS_CODE_DEPLOY.md](docs/VS_CODE_DEPLOY.md).
+
 ## Monad Testnet
 
 - Chain ID **10143**.
