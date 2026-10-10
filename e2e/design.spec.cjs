@@ -47,3 +47,48 @@ test('small screens have no page-wide sideways overflow',async({page})=>{
    expect(m.content).toBeLessThanOrEqual(m.viewport+2);
  }
 });
+
+test('local jam room can be created, played, finalized and replayed as Beat Card',async({page})=>{
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('/create');
+  await page.waitForFunction(()=>document.documentElement.dataset.beatDropHydrated==='true');
+  await page.locator('#room-name').fill('My test jam');
+  await page.getByRole('button',{name:/Create jam room/}).click();
+  await expect(page).toHaveURL(/\/room\/BD-[A-F0-9]{6}\/lobby/);
+  await page.getByRole('button',{name:'Take a seat'}).first().click();
+  await expect(page.getByRole('button',{name:'Leave seat'})).toHaveCount(1);
+  await page.getByRole('button',{name:/Start 90-second jam/}).click();
+  await expect(page).toHaveURL(/\/room\/BD-[A-F0-9]{6}\/studio/,{timeout:12000});
+  await expect(page.getByRole('heading',{name:'My test jam'})).toBeVisible();
+  const target=page.getByRole('button',{name:/drums step 1/}).first();
+  await expect(target).toBeEnabled();
+  await target.click();
+  await expect(target).toHaveAttribute('aria-pressed','true');
+  await page.getByRole('button',{name:'Finish local round'}).click();
+  await expect(page).toHaveURL(/\/beat\/local-bd-[a-f0-9]{6}/);
+  await expect(page.getByRole('heading',{name:'My test jam'})).toBeVisible();
+  await expect(page.getByText(/Locally saved/)).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading',{name:'My test jam'})).toBeVisible();
+  expect(errors).toEqual([]);
+});
+test('downloaded music arrangement JSON has all four lanes and validates round-trip import',async({page})=>{
+ await page.goto('/studio');
+ await page.waitForFunction(()=>document.documentElement.dataset.beatDropHydrated==='true');
+ const [download]=await Promise.all([
+   page.waitForEvent('download'),
+   page.getByRole('button',{name:'Export loop'}).click()
+ ]);
+ expect(download.suggestedFilename()).toBe('beat-drop-loop.json');
+ const invalid='{"name":"Bad","pattern":{"drums":[4]}}';
+ await page.locator('input[type=file]').setInputFiles({name:'bad.json',mimeType:'application/json',buffer:Buffer.from(invalid)});
+ await expect(page.getByText(/Choose a valid 16-step/)).toBeVisible();
+ await page.locator('input[type=file]').setInputFiles({
+   name:'loop.json',mimeType:'application/json',
+   buffer:Buffer.from(JSON.stringify({name:'Imported beat',bpm:120,steps:16,pattern:{
+     drums:Array(16).fill(1),bass:Array(16).fill(0),synth:Array(16).fill(0),pluck:Array(16).fill(0)
+   }}))
+ });
+ await expect(page.getByText('Loop imported.')).toBeVisible();
+ await expect(page.getByText('Imported beat').first()).toBeVisible();
+});
