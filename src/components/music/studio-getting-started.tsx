@@ -18,7 +18,7 @@ export function StudioGettingStarted({isJam=false}:{isJam?:boolean}){
    catch{toast.error('Browser audio could not start. Check your volume and try again.');}
  };
  const demoSong=()=>{
-   music.load(signaturePattern(),SIGNATURE_SONG.title);
+   music.load(signaturePattern(),SIGNATURE_SONG.title,120);
    music.setInstrument('synth');
    toast.success('Original demo song loaded. Press Play loop to hear all four instruments.');
  };
@@ -28,9 +28,16 @@ export function StudioGettingStarted({isJam=false}:{isJam?:boolean}){
    void navigate({to:'/room/$roomId/lobby',params:{roomId:room.id}});
  };
  const blank=()=>{
-   music.load(emptyPattern(),'My first beat');
+   music.load(emptyPattern(),'My first beat',120);
    music.setInstrument('drums');
    toast('Blank studio ready. Click a drum step in the first row, then press Play loop.');
+ };
+ const lofi=()=>{
+   // A full song starts with FOUR empty instrument lanes, not a pre-recorded sample.
+   // Solo playback uses 84 BPM; blockchain jam tempo remains fixed at 120 BPM.
+   music.load(emptyPattern(),'Lo-fi Canvas',84);
+   music.setInstrument('drums');
+   toast.success('Blank Lo-fi Canvas · 84 BPM. Add a kick on steps 1, 5, 9 and 13, then bass and pluck notes.');
  };
  if(!open)return <div className="studio-guidance-closed">
    <span><Sparkles className="size-4"/> Need help making a beat?</span>
@@ -41,7 +48,7 @@ export function StudioGettingStarted({isJam=false}:{isJam?:boolean}){
      <div><p className="eyebrow mb-2">START HERE · {isJam?'LOCAL JAM':'NO WALLET NEEDED'}</p>
        <h2>Make your first beat in 30 seconds.</h2>
        <p>{isJam?'Pick your assigned instrument, play notes and build the loop together in this local demonstration.':
-         'Hear a working beat first. Then change a note, play the keyboard, or start from an empty loop.'}</p>
+         'Choose an original demo or create your own empty Lo-fi song. A song contains four editable instrument lanes, not just one track.'}</p>
      </div>
      <Button variant="ghost" size="icon" aria-label="Hide getting started guide" onClick={()=>setOpen(false)}><X className="size-4"/></Button>
    </div>
@@ -50,6 +57,7 @@ export function StudioGettingStarted({isJam=false}:{isJam?:boolean}){
         <Play className="size-4"/>{music.playing?'Beat is playing':'▶ Play example beat'}
       </Button>
       {!isJam&&<Button size="sm" variant="outline" onClick={demoSong}><Sparkles className="size-4"/>Load “Midnight on Monad”</Button>}
+      {!isJam&&<Button size="sm" variant="outline" onClick={lofi}><Plus className="size-4"/>New blank Lo-fi · 84 BPM</Button>}
       {!isJam&&<Button size="sm" variant="outline" onClick={blank}><Plus className="size-4"/>Start empty beat</Button>}
       {!isJam&&<Button size="sm" variant="outline" onClick={rehearse}><Layers3 className="size-4"/>Rehearse 4 players alone</Button>}
       {!isJam&&<Button size="sm" variant="outline" asChild><Link to="/create"><Layers3 className="size-4"/>Create a jam <ArrowRight className="size-3"/></Link></Button>}
