@@ -20,6 +20,13 @@ jobs:
         run: npx tsc --noEmit
       - name: Test legacy music and protocol
         run: npm run test:legacy
+      - name: Syntax-check safe local deployer helpers
+        run: |
+          node --check scripts/deployer-path.cjs
+          node --check scripts/prepare-deployer.cjs
+          node --check scripts/deployer-status.cjs
+          node --check scripts/deploy.cjs
+          node --check scripts/check-testnet.cjs
       - name: Compile Solidity
         run: npm run contracts:compile
       - name: Contract tests
