@@ -172,6 +172,7 @@ export function ChainStudio({roomId}:{roomId:string}){
   const {room,loading,error,refresh}=useChainRoom(roomId);
   const {account,connect}=useConnectedWallet();const m=useMusic();const music=useRef(m);music.current=m;
   const [busy,setBusy]=useState(false),[activity,setActivity]=useState(''),[seconds,setSeconds]=useState(90),[sessionMode,setSessionMode]=useState(false);
+  const [draft,setDraft]=useState(()=>readChainDraft());
   const pending=useRef(new Map<Instrument,Map<number,number>>()),flushing=useRef(false),timer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const roomRef=useRef(room);roomRef.current=room;const accountRef=useRef(account);accountRef.current=account;
   const loadedId=useRef('');
@@ -228,7 +229,6 @@ export function ChainStudio({roomId}:{roomId:string}){
     catch(e){setActivity(chainError(e));toast.error(chainError(e));}
     finally{setBusy(false);}
   };
-  const [draft,setDraft]=useState(()=>readChainDraft());
   const publishPattern=async(song:Pattern,label:string,isDraft=false)=>{
     const r=roomRef.current,owner=accountRef.current;
     if(!r||!owner||r.phase!=='Live'||!instruments.every(inst=>sameWallet(r.seats[instruments.indexOf(inst)],owner))){
