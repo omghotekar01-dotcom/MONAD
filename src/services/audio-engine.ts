@@ -3,7 +3,7 @@ type ToneModule = typeof import('tone');
 export interface AudioEngine { unlock(): Promise<void>; trigger(instrument: Instrument, note: number): void; play(pattern:()=>Pattern, onStep:(step:number)=>void): Promise<void>; stop(): void; volume(value:number):void; tempo(bpm:number):void; channel(instrument:Instrument,value:number):void; waveform():Float32Array }
 class BrowserAudioEngine implements AudioEngine {
   private tone?: ToneModule;
-  private bpm=MUSIC.bpm;
+  private bpm:number=MUSIC.bpm;
   private loading: Promise<void> | undefined;
   private loop: import('tone').Loop | undefined;
   private drums?: import('tone').MembraneSynth;
