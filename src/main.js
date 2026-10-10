@@ -1,5 +1,6 @@
 import * as Tone from "tone";
 import {INSTRUMENTS,LABELS,COLORS,STEPS,BPM,NOTES,KEY_LOWER,KEY_UPPER,DRUM_NAMES,createPattern,withNote,keyToNote,hasNotes,contributions,serialize,deserialize,quantizedStep} from "./sequencer.js";
+import { mountRooms } from "./room-controller.js";
 import "./style.css";
 
 const el=document.querySelector("#app");
@@ -8,6 +9,23 @@ let beatUrl="",message="Practice is local — no wallet needed.",notesPlayed=0;
 let sampler=null,loop=null,master=null;
 const sound={};
 let playbackStartedAt=0;
+let roomController=null, pendingRemote=null;
+function setCell(instrument,step,cell){
+ const out={...pattern,[instrument]:pattern[instrument].map(c=>[...c])};
+ out[instrument][step]=[...cell];
+ return out;
+}
+function setPatternFromChain(next,boundary=true){
+ if(playing&&boundary){pendingRemote=next;return;}
+ pendingRemote=null;pattern=next;renderGrid();renderStats();
+}
+function toggleRecord(){
+ if(!recording && roomController?.inRoom() && !roomController.canEdit(instrument)){
+   setMessage("Read-only instrument. A seat owner can record during a live jam.");return;
+ }
+ recording=!recording;renderControls();
+ setMessage(recording?"Record armed — changes are "+(roomController?.inRoom()?"submitted to Monad.":"local."):"Recording disarmed.");
+}
 
 function buildSound(){
  if(started)return;
@@ -24,6 +42,7 @@ function buildSound(){
  Tone.getTransport().bpm.value=BPM;
  loop=new Tone.Loop(time=>{
   step=(step+1)%STEPS;
+  if(pendingRemote){pattern=pendingRemote;pendingRemote=null;Tone.getDraw().schedule(()=>{renderGrid();renderStats();},time);}
   for(const inst of INSTRUMENTS){
    for(const note of pattern[inst][step]) trigger(inst,note,time);
   }
@@ -61,22 +80,38 @@ async function inputNote(note){
  trigger(instrument,note,Tone.now()+0.005);notesPlayed++;
  if(recording){
   const target=playing?timeForStep():0;
-  history.push(pattern);
+  if(roomController?.inRoom() && !roomController.canEdit(instrument)){
+    recording=false;renderControls();setMessage("Your seat is not allowed to edit now.");return;
+  }
+  if(roomController?.inRoom())history.push({kind:"room",instrument,step:target,before:[...pattern[instrument][target]]});
+  else history.push(pattern);
   pattern=withNote(pattern,instrument,target,note,true);
+  if(roomController?.inRoom())roomController.enqueue(instrument,target,pattern[instrument][target]);
   setMessage("Recorded "+selectedPadLabel(note)+" at step "+(target+1)+".");
  }
  renderPads();renderGrid();renderStats();
 }
 function toggleCell(i){
- history.push(pattern);
+ if(roomController?.inRoom() && !roomController.canEdit(instrument)){
+   setMessage("Read-only: you need the assigned wallet, a live round and time remaining.");return;
+ }
  const current=pattern[instrument][i];
+ if(roomController?.inRoom())history.push({kind:"room",instrument,step:i,before:[...current]});
+ else history.push(pattern);
  pattern=withNote(pattern,instrument,i,selectedNote,current.includes(selectedNote)?false:true);
+ if(roomController?.inRoom())roomController.enqueue(instrument,i,pattern[instrument][i]);
  setMessage("Edited step "+(i+1)+" in "+LABELS[instrument]+".");
  renderGrid();renderStats();
 }
 function undo(){
  if(!history.length){setMessage("Nothing to undo yet.");return;}
- pattern=history.pop();setMessage("Last edit undone.");renderGrid();renderStats();
+ const last=history.pop();
+ if(last?.kind==="room"){
+   if(!roomController?.canEdit(last.instrument)){setMessage("Undo is no longer allowed after the round closes.");return;}
+   pattern=setCell(last.instrument,last.step,last.before);
+   roomController.enqueue(last.instrument,last.step,last.before);
+ }else pattern=last;
+ setMessage("Last edit undone.");renderGrid();renderStats();
 }
 function changeInstrument(i){
  instrument=i;selectedNote=0;
@@ -160,7 +195,7 @@ function onKey(event){
  if(target instanceof HTMLElement&&(target.closest("input,textarea,select,[contenteditable=true]")))return;
  const k=event.key.toLowerCase();
  if("1234".includes(k)&&k.length===1){changeInstrument(INSTRUMENTS[Number(k)-1]);return;}
- if(k===" "){event.preventDefault();recording=!recording;renderControls();setMessage(recording?"Record armed. Use keyboard or pads.":"Recording disarmed.");return;}
+ if(k===" "){event.preventDefault();toggleRecord();return;}
  if(k==="z"){undo();return;}
  const note=keyToNote(instrument,k);if(note>=0)void inputNote(note);
 }
@@ -168,11 +203,12 @@ window.addEventListener("keydown",onKey);
 window.addEventListener("blur",()=>{document.querySelectorAll(".pad").forEach(b=>b.classList.remove("pressed"));});
 
 el.innerHTML=`
-<header class="top"><a class="logo" href="/" aria-label="Beat Drop home"><span class="logo-symbol">◉</span> BEAT<span>DROP</span></a><span class="pill"><i></i> LOCAL STUDIO <small>· MILESTONE 1</small></span><a class="github" href="https://github.com/omghotekar01-dotcom/MONAD" target="_blank" rel="noreferrer">GitHub ↗</a></header>
+<header class="top"><a class="logo" href="/" aria-label="Beat Drop home"><span class="logo-symbol">◉</span> BEAT<span>DROP</span></a><span class="pill"><i></i> BEAT DROP <small>· MONAD TESTNET</small></span><a class="github" href="https://github.com/omghotekar01-dotcom/MONAD" target="_blank" rel="noreferrer">GitHub ↗</a></header>
 <main>
-<section class="intro"><div class="eyebrow">THE SHARED MUSIC EXPERIMENT <span>·</span> 01 / PRACTICE</div><h1>Make something <em>together.</em></h1><p>Four strangers. One beat. Everyone credited. Start here: make a loop with your keyboard, then take it on-chain as multiplayer rooms arrive.</p></section>
+<section class="intro"><div class="eyebrow">THE SHARED MUSIC EXPERIMENT <span>·</span> 01 / PRACTICE</div><h1>Make something <em>together.</em></h1><p>Four strangers. One beat. Everyone credited. Make a local loop for practice, or create a jam on Monad Testnet and invite friends to record together.</p></section>
+<div id="rooms-anchor"></div>
 <section class="workspace" aria-label="Music studio">
-<div class="studio-head"><div><div class="eyebrow">YOUR WORKSPACE</div><h2>Late Night Session <span>↗</span></h2><p>Local practice · Not connected to Monad</p></div><div class="tempo"><strong>120</strong><span>BPM</span><strong>4/4</strong><span>TIME</span></div></div>
+<div class="studio-head"><div><div class="eyebrow">YOUR WORKSPACE</div><h2>Late Night Session <span>↗</span></h2><p>120 BPM · Local practice needs no wallet; shared edits are recorded when a live room is connected</p></div><div class="tempo"><strong>120</strong><span>BPM</span><strong>4/4</strong><span>TIME</span></div></div>
 <div class="seat-row"><button data-instrument="drums" class="seat active"><span class="seat-icon">◈</span><div><b>01 / DRUMS</b><small>Percussion</small></div><span class="seat-dot"></span></button><button data-instrument="bass" class="seat"><span class="seat-icon">♩</span><div><b>02 / BASS</b><small>Low frequencies</small></div><span class="seat-dot"></span></button><button data-instrument="synth" class="seat"><span class="seat-icon">≋</span><div><b>03 / SYNTH</b><small>Lead melody</small></div><span class="seat-dot"></span></button><button data-instrument="pluck" class="seat"><span class="seat-icon">✧</span><div><b>04 / PLUCK</b><small>Bright accents</small></div><span class="seat-dot"></span></button></div>
 <div class="grid-section"><div class="section-line"><span id="lane-label">DRUMS / STEP GRID</span><span>ONE BAR · 16 STEPS <b id="playhead">01 / 16</b></span></div><div class="step-grid" id="grid"></div><div class="beat-labels"><span>BEAT 01</span><span>BEAT 02</span><span>BEAT 03</span><span>BEAT 04</span></div>
 <div id="lane-overview" class="lanes"></div></div>
@@ -180,13 +216,23 @@ el.innerHTML=`
 <div class="transport"><div class="transport-left"><button id="play" class="play-btn">▶ Play loop</button><button id="record" class="record-btn">○ Record</button><button id="undo">↶ Undo</button></div><div class="transport-right"><button id="save" disabled>↓ Save loop</button><label for="upload" class="upload-btn">↑ Open loop<input id="upload" type="file" accept=".json,application/json" hidden></label></div></div>
 <div id="status" class="status" role="status" aria-live="polite">Practice is local — no wallet needed.</div>
 </section>
-<section class="info-strip"><div><span class="eyebrow">01 / LOCAL EDITS</span><strong id="edit-count">0</strong><small>Recorded notes</small></div><div><span class="eyebrow">02 / ACTIVE LANES</span><strong id="active-seats">0 / 4</strong><small>With at least one note</small></div><div><span class="eyebrow">03 / ON-CHAIN STATUS</span><strong class="not-live">Coming next</strong><small>Monad testnet rooms & tips</small></div></section>
+<section class="info-strip"><div><span class="eyebrow">01 / LOCAL EDITS</span><strong id="edit-count">0</strong><small>Recorded notes</small></div><div><span class="eyebrow">02 / ACTIVE LANES</span><strong id="active-seats">0 / 4</strong><small>With at least one note</small></div><div><span class="eyebrow">03 / ON-CHAIN STATUS</span><strong id="network-status" class="not-live">Room controls above</strong><small>Only confirmed chain notes earn attribution</small></div></section>
 <footer><p>BEAT DROP / EXPERIMENTAL MUSIC SPACE</p><p>Local audio · No royalties or ownership claims · Built for Monad</p></footer>
 </main>`;
 document.querySelectorAll("[data-instrument]").forEach(btn=>btn.addEventListener("click",()=>changeInstrument(btn.dataset.instrument)));
 document.querySelector("#play").onclick=()=>void togglePlay();
-document.querySelector("#record").onclick=()=>{recording=!recording;renderControls();setMessage(recording?"Record armed. Start playback and perform.":"Recording disarmed.");};
+document.querySelector("#record").onclick=toggleRecord;
 document.querySelector("#undo").onclick=undo;
 document.querySelector("#save").onclick=downloadBeat;
 document.querySelector("#upload").onchange=e=>{loadBeat(e.target.files?.[0]);e.target.value="";};
 renderGrid();renderPads();renderStats();renderControls();
+
+roomController=mountRooms({
+ onPattern:setPatternFromChain,
+ onStatus:setMessage,
+ onRoomChange:(active)=>{
+   history=[];recording=false;renderControls();
+   document.querySelector("#network-status").textContent=active?"Shared room":"Local practice";
+   setMessage(active?"Loading chain-authoritative room state.":"Local practice. No wallet needed.");
+ }
+});
