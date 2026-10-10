@@ -174,6 +174,35 @@ export async function nextRoomId(){
   return publicClient.readContract({address:CONTRACT_ADDRESS,abi:BEATDROP_ABI,functionName:"nextRoomId"});
 }
 /**
+ * Read-only, budget-limited event history. Public RPC providers can reject
+ * large eth_getLogs windows (HTTP 413). Reduce the range on rejection, prefer
+ * the latest blocks and report partial coverage rather than blocking payments
+ * or pretending a transaction has failed.
+ */
+async function scanRecentLogs(filter,first,last,maxRequests=48){
+  const logs=[];
+  let remaining=maxRequests,complete=true;
+  async function scan(fromBlock,toBlock){
+    if(remaining<=0){complete=false;return;}
+    remaining--;
+    try{
+      const result=await publicClient.request({method:"eth_getLogs",params:[{
+        ...filter,fromBlock:toHex(fromBlock),toBlock:toHex(toBlock)
+      }]});
+      logs.push(...result);
+    }catch{
+      if(toBlock-fromBlock+1n<=8n){complete=false;return;}
+      const mid=(fromBlock+toBlock)/2n;
+      // Give the most recent activity priority within the request budget.
+      await scan(mid+1n,toBlock);
+      await scan(fromBlock,mid);
+    }
+  }
+  await scan(first,last);
+  return {logs,complete};
+}
+
+/**
  * Scan recent Monad logs for a room. This is NOT an exhaustive lifetime index.
  * Every room event has roomId as its FIRST indexed topic, so a single indexed
  * filter finds edits, seats, tips and claims without 10 RPC calls per chunk.
@@ -186,24 +215,11 @@ export async function readRoomEvents(roomId,lookback=4096){
   const depth=Number.isInteger(lookback)?Math.min(8192,Math.max(256,lookback)):4096;
   const latest=await publicClient.getBlockNumber();
   const start=latest>BigInt(depth)?latest-BigInt(depth)+1n:0n;
-  const parts=[];
-  for(let from=start;from<=latest;from+=512n){
-    const to=from+511n>latest?latest:from+511n;
-    parts.push([from,to]);
-  }
-  const queries=await Promise.allSettled(parts.map(async ([fromBlock,toBlock])=>{
-    // Raw eth_getLogs explicitly preserves our cross-event topics filter.
-    // Every BeatDrop room event has roomId as its first indexed argument.
-    return publicClient.request({method:"eth_getLogs",params:[{
-      address:CONTRACT_ADDRESS,topics:[null,toHex(room,{size:32})],
-      fromBlock:toHex(fromBlock),toBlock:toHex(toBlock)
-    }]});
-  }));
-  const rejected=queries.find(result=>result.status==="rejected");
-  if(rejected)throw new Error("Activity scan could not be completed from the public RPC. Try again or use the Monad explorer.");
-  const logs=queries.flatMap(result=>result.status==="fulfilled"?result.value:[]);
+  const {logs,complete}=await scanRecentLogs({
+    address:CONTRACT_ADDRESS,topics:[null,toHex(room,{size:32})]
+  },start,latest);
   return {
-    fromBlock:start,toBlock:latest,windowBlocks:depth,
+    fromBlock:start,toBlock:latest,windowBlocks:depth,scanComplete:complete,
     events:logs.map(log=>{
       try{
         const decoded=decodeEventLog({abi:BEATDROP_ABI,data:log.data,topics:log.topics,strict:false});
@@ -232,16 +248,7 @@ export async function readRecentContractEvents(lookback=1024){
     publicClient.readContract({address:CONTRACT_ADDRESS,abi:BEATDROP_ABI,functionName:"nextRoomId"})
   ]);
   const first=height>=BigInt(depth)?height-BigInt(depth)+1n:0n;
-  const slices=[];
-  for(let from=first;from<=height;from+=512n){
-    const to=from+511n>height?height:from+511n;
-    slices.push([from,to]);
-  }
-  const settled=await Promise.allSettled(slices.map(([fromBlock,toBlock])=>publicClient.request({
-    method:"eth_getLogs",params:[{address:CONTRACT_ADDRESS,fromBlock:toHex(fromBlock),toBlock:toHex(toBlock)}]
-  })));
-  const failed=settled.some(x=>x.status==="rejected");
-  const logs=settled.flatMap(x=>x.status==="fulfilled"?x.value:[]);
+  const {logs,complete}=await scanRecentLogs({address:CONTRACT_ADDRESS},first,height);
   const events=logs.map(log=>{
     try{
       const decoded=decodeEventLog({abi:BEATDROP_ABI,data:log.data,topics:log.topics,strict:false});
@@ -255,7 +262,7 @@ export async function readRecentContractEvents(lookback=1024){
     }catch{return null;}
   }).filter(Boolean).sort((a,b)=>b.block-a.block||b.index-a.index).slice(0,150);
   return {chainId:TESTNET.id,contract:CONTRACT_ADDRESS,latestBlock:height,
-    roomCount:next-1n,fromBlock:first,toBlock:height,scanComplete:!failed,
+    roomCount:next-1n,fromBlock:first,toBlock:height,scanComplete:complete,
     events};
 }
 export async function readClaim(roomId,owner){
